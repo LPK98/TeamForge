@@ -80,7 +80,7 @@
 .tf-auth-form-header p { margin: 8px 0 0; color: var(--tf-muted); font-size: 12px; line-height: 1.6; }
 .tf-auth-form { display: grid; gap: 17px; margin-top: 28px; }
 .tf-auth-field { display: grid; gap: 7px; }
-.tf-auth-field label { color: var(--tf-muted); font-size: 10px; font-weight: 650; }
+.tf-auth-field label { display: inline-flex; align-items: center; gap: 6px; color: var(--tf-muted); font-size: 10px; font-weight: 650; }
 .tf-auth-input-wrap { position: relative; }
 .tf-auth-input {
   width: 100%;

@@ -1,0 +1,46 @@
+.tf-notification-wrap { position: relative; }
+.tf-notification { position: relative; transition: border-color .2s ease, background .2s ease, transform .2s ease, box-shadow .2s ease; }
+.tf-notification:hover, .tf-notification.is-open { border-color: var(--tf-border-strong); background: var(--tf-blue-soft); box-shadow: 0 0 0 4px rgba(74, 139, 255, .08), 0 8px 24px rgba(29, 83, 177, .18); transform: translateY(-1px); }
+.tf-notification-badge { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; display: grid; place-items: center; border: 2px solid var(--tf-bg); border-radius: 999px; background: linear-gradient(135deg, #8bb9ff, #3979f4); box-shadow: 0 4px 12px rgba(45, 113, 239, .45); color: #fff; font-size: 9px; font-weight: 800; line-height: 1; }
+.tf-notification-popover { position: absolute; z-index: 30; top: calc(100% + 14px); right: -8px; width: min(410px, calc(100vw - 28px)); overflow: hidden; border: 1px solid var(--tf-border-strong); border-radius: 20px; background: color-mix(in srgb, var(--tf-panel-strong) 94%, transparent); box-shadow: 0 24px 70px rgba(4, 13, 35, .42), 0 0 0 1px rgba(112, 167, 255, .05) inset; backdrop-filter: blur(28px); animation: tf-notification-in .18s ease-out; }
+.tf-notification-popover::before { content: ""; position: absolute; top: -5px; right: 22px; width: 10px; height: 10px; border-top: 1px solid var(--tf-border-strong); border-left: 1px solid var(--tf-border-strong); background: var(--tf-panel-strong); transform: rotate(45deg); }
+.tf-notification-heading { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 18px; border-bottom: 1px solid var(--tf-border); }
+.tf-notification-title { display: flex; align-items: center; gap: 10px; }
+.tf-notification-title-icon { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid rgba(112, 167, 255, .25); border-radius: 10px; background: var(--tf-blue-soft); color: var(--tf-blue); }
+.tf-notification-title div { display: grid; gap: 3px; }
+.tf-notification-title strong { color: var(--tf-text); font-size: 13px; letter-spacing: -.01em; }
+.tf-notification-title span:not(.tf-notification-title-icon), .tf-notification-content small { color: var(--tf-muted); font-size: 11px; }
+.tf-notification-read-all { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--tf-blue); cursor: pointer; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.tf-notification-read-all:hover { color: var(--tf-text); }
+.tf-notification-list { max-height: 390px; overflow-y: auto; }
+.tf-notification-list::-webkit-scrollbar { width: 5px; }
+.tf-notification-list::-webkit-scrollbar-thumb { border-radius: 5px; background: var(--tf-border-strong); }
+.tf-notification-item { display: flex; align-items: center; gap: 10px; padding: 15px 18px; border-bottom: 1px solid var(--tf-border); transition: background .2s ease; }
+.tf-notification-item:hover { background: rgba(112, 167, 255, .06); }
+.tf-notification-item.is-unread { background: linear-gradient(90deg, rgba(74, 139, 255, .14), rgba(74, 139, 255, .04)); }
+.tf-notification-item.is-unread::before { content: ""; flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--tf-blue); box-shadow: 0 0 10px rgba(112, 167, 255, .8); }
+.tf-notification-content { display: grid; flex: 1; gap: 5px; min-width: 0; border: 0; padding: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.tf-notification-content strong { overflow: hidden; color: var(--tf-text); font-size: 12px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.tf-notification-content span { color: var(--tf-muted); font-size: 12px; line-height: 1.45; }
+.tf-notification-content small { display: flex; align-items: center; gap: 7px; }
+.tf-notification-project { overflow: hidden; max-width: 170px; color: var(--tf-blue) !important; font-size: 10px !important; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.tf-notification-project::after { content: ""; display: inline-block; width: 3px; height: 3px; margin-left: 7px; vertical-align: middle; border-radius: 50%; background: var(--tf-subtle); }
+.tf-notification-actions { display: flex; gap: 6px; }
+.tf-notification-actions button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--tf-border); border-radius: 9px; background: var(--tf-panel); color: var(--tf-text); cursor: pointer; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.tf-notification-actions button:hover:not(:disabled) { border-color: var(--tf-border-strong); background: var(--tf-panel-hover); transform: translateY(-1px); }
+.tf-notification-actions button:first-child { color: #78d5aa; }
+.tf-notification-actions button:last-child { color: #ff9d9d; }
+.tf-notification-actions button:disabled { cursor: wait; opacity: .45; }
+.tf-notification-state, .tf-notification-error { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0; padding: 26px 18px; color: var(--tf-muted); font-size: 12px; }
+.tf-notification-error { justify-content: flex-start; color: #ffabab; background: rgba(255, 100, 100, .06); }
+.tf-notification-empty { display: grid; justify-items: center; gap: 6px; padding: 34px 20px 38px; text-align: center; }
+.tf-notification-empty > span { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 4px; border: 1px solid var(--tf-border); border-radius: 14px; background: var(--tf-blue-soft); color: var(--tf-blue); }
+.tf-notification-empty strong { color: var(--tf-text); font-size: 13px; }
+.tf-notification-empty p { margin: 0; color: var(--tf-muted); font-size: 11px; }
+.tf-notification-spinner { width: 14px; height: 14px; border: 2px solid var(--tf-border); border-top-color: var(--tf-blue); border-radius: 50%; animation: tf-notification-spin .7s linear infinite; }
+@keyframes tf-notification-in { from { opacity: 0; transform: translateY(-5px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes tf-notification-spin { to { transform: rotate(360deg); } }
+@media (max-width: 560px) {
+  .tf-notification-popover { position: fixed; top: 68px; right: 14px; }
+  .tf-notification-popover::before { display: none; }
+}

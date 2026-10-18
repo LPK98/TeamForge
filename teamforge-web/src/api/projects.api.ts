@@ -4,6 +4,7 @@ export type ProjectStatus = "planning" | "in_progress" | "completed" | "on_hold"
 
 export interface Project {
   id: number;
+  user_id?: number;
   name: string;
   description: string | null;
   status: ProjectStatus;

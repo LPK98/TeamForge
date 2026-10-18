@@ -1,0 +1,48 @@
+.tf-account-page { min-width: 0; min-height: 100vh; padding: 32px clamp(18px, 4vw, 58px); }
+.tf-account-container { width: 100%; }
+.tf-account-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding-bottom: 28px; border-bottom: 1px solid var(--tf-border); }
+.tf-account-header h1 { margin: 7px 0 0; color: var(--tf-text); font-size: clamp(30px, 5vw, 46px); font-weight: 730; letter-spacing: -.06em; }
+.tf-account-header p { margin: 10px 0 0; color: var(--tf-muted); font-size: 13px; }
+.tf-account-back { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; color: var(--tf-blue); font-size: 11px; font-weight: 700; text-decoration: none; }
+.tf-account-back:hover { color: var(--tf-text); }
+.tf-account-alert, .tf-account-success { display: flex; align-items: center; gap: 8px; margin-top: 18px; padding: 12px 15px; border-radius: 12px; font-size: 11px; }
+.tf-account-alert { border: 1px solid rgba(251, 113, 133, .25); background: rgba(251, 113, 133, .08); color: #fda4b8; }
+.tf-account-success { border: 1px solid rgba(85, 214, 166, .25); background: rgba(85, 214, 166, .08); color: #72d9bf; }
+.tf-account-grid, .tf-settings-grid { display: grid; grid-template-columns: minmax(220px, .65fr) minmax(0, 1.35fr); gap: 16px; margin-top: 25px; }
+.tf-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tf-account-identity, .tf-account-card { padding: clamp(20px, 3vw, 30px); border-radius: 20px; }
+.tf-account-identity { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.tf-account-avatar { display: grid; width: 76px; height: 76px; place-items: center; border: 1px solid rgba(160, 196, 255, .34); border-radius: 24px; background: linear-gradient(145deg, #6da8ff, #3768dc 72%, #5e54d9); color: white; font-size: 22px; font-weight: 800; box-shadow: 0 12px 30px rgba(55, 110, 235, .25); }
+.tf-photo-preview { position: relative; }
+.tf-photo-preview img { display: block; width: 76px; height: 76px; object-fit: cover; border-radius: 24px; }
+.tf-photo-camera { position: absolute; right: -5px; bottom: -5px; display: grid; width: 27px; height: 27px; place-items: center; border: 2px solid var(--tf-bg); border-radius: 50%; background: var(--tf-blue); color: white; }
+.tf-photo-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.tf-photo-actions button { min-height: 34px; padding: 0 11px; font-size: 10px; }
+.tf-photo-selected { display: grid; gap: 7px; width: 100%; margin-top: 18px; padding: 11px; border: 1px solid var(--tf-border); border-radius: 11px; text-align: left; }
+.tf-photo-selected strong { overflow: hidden; color: var(--tf-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.tf-photo-selected span { color: var(--tf-muted); font-size: 10px; }
+.tf-photo-selected .tf-primary-button { justify-content: center; width: 100%; height: 33px; margin: 0; }
+.tf-photo-help { margin-top: 13px; color: var(--tf-subtle); font-size: 9px; }
+.tf-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+.tf-account-identity h2 { margin: 18px 0 5px; color: var(--tf-text); font-size: 20px; }
+.tf-account-identity p { margin: 0; color: var(--tf-muted); font-size: 12px; overflow-wrap: anywhere; }
+.tf-account-identity > span { margin-top: 15px; padding: 5px 9px; border-radius: 7px; background: var(--tf-blue-soft); color: var(--tf-blue); font-size: 10px; }
+.tf-account-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; color: var(--tf-blue); }
+.tf-account-card-heading h2 { margin: 6px 0 0; color: var(--tf-text); font-size: 20px; letter-spacing: -.035em; }
+.tf-account-card-heading p { margin: 7px 0 0; color: var(--tf-muted); font-size: 11px; }
+.tf-account-field { display: grid; gap: 7px; margin-top: 22px; color: var(--tf-muted); font-size: 10px; font-weight: 650; }
+.tf-account-field input { width: 100%; height: 44px; padding: 0 13px; border: 1px solid var(--tf-border); border-radius: 12px; outline: 0; background: var(--tf-panel-strong); color: var(--tf-text); font-size: 12px; }
+.tf-account-field input:focus { border-color: var(--tf-border-strong); box-shadow: 0 0 0 3px var(--tf-blue-soft); }
+.tf-account-readonly { display: flex; min-height: 44px; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 13px; border: 1px solid var(--tf-border); border-radius: 12px; background: rgba(12, 24, 44, .25); color: var(--tf-text); font-size: 12px; }
+.tf-account-readonly svg { color: var(--tf-blue); }
+.tf-account-readonly small { width: 100%; color: var(--tf-subtle); font-size: 9px; font-weight: 400; }
+.tf-account-actions { display: flex; justify-content: flex-end; margin-top: 25px; }
+.tf-settings-status { display: flex; align-items: center; gap: 8px; margin-top: 24px; color: var(--tf-text); font-size: 12px; font-weight: 650; }
+.tf-settings-dot { width: 7px; height: 7px; border-radius: 50%; background: #55d6a6; box-shadow: 0 0 10px rgba(85, 214, 166, .7); }
+.tf-settings-muted { margin: 12px 0 0; color: var(--tf-muted); font-size: 11px; line-height: 1.7; }
+@media (max-width: 900px) { .tf-account-page { padding-top: 76px; } }
+@media (max-width: 650px) {
+  .tf-account-header { align-items: flex-start; flex-direction: column; }
+  .tf-account-grid, .tf-settings-grid { grid-template-columns: 1fr; }
+  .tf-account-header .tf-page-header-actions { width: 100%; justify-content: flex-end; }
+}

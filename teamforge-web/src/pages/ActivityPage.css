@@ -1,0 +1,82 @@
+.tf-activity-page { position: relative; min-width: 0; min-height: 100vh; overflow: visible; padding: 32px clamp(18px, 4vw, 58px); isolation: isolate; }
+.tf-activity-orb { position: fixed; z-index: -1; width: 360px; height: 360px; border-radius: 50%; filter: blur(95px); opacity: .16; pointer-events: none; }
+.tf-activity-orb-one { top: -150px; left: 24%; background: #2877ff; }
+.tf-activity-container { width: 100%; margin: 0 auto; }
+.tf-activity-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding-bottom: 28px; border-bottom: 1px solid var(--tf-border); }
+.tf-activity-header h1 { margin: 7px 0 0; color: var(--tf-text); font-size: clamp(30px, 5vw, 46px); font-weight: 730; letter-spacing: -.06em; }
+.tf-activity-header p { margin: 10px 0 0; color: var(--tf-muted); font-size: 13px; }
+.tf-activity-panel { position: relative; z-index: 2; margin-top: 25px; padding: clamp(18px, 3vw, 28px); border-radius: 20px; }
+.tf-activity-toolbar { position: relative; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-bottom: 20px; border-bottom: 1px solid var(--tf-border); }
+.tf-activity-menu, .tf-activity-date-picker, .tf-activity-filter-select { position: relative; min-width: 190px; }
+.tf-activity-control, .tf-activity-date-control { display: flex; width: 100%; height: 44px; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--tf-border); border-radius: 12px; background: var(--tf-panel-strong); color: var(--tf-text); font-size: 11px; text-align: left; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+.tf-activity-control:hover, .tf-activity-date-control:hover, .tf-activity-control[aria-expanded="true"], .tf-activity-date-control[aria-expanded="true"] { border-color: var(--tf-border-strong); background: var(--tf-panel-hover); }
+.tf-activity-control:focus-visible, .tf-activity-date-control:focus-visible, .tf-activity-menu-option:focus-visible, .tf-activity-calendar-day:focus-visible, .tf-activity-calendar-nav:focus-visible, .tf-activity-calendar-actions button:focus-visible { outline: 2px solid var(--tf-blue); outline-offset: 2px; }
+.tf-activity-control > span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-activity-control-placeholder { color: var(--tf-muted); }
+.tf-activity-control > svg:first-child, .tf-activity-date-control > svg { color: var(--tf-blue); }
+.tf-activity-control > svg:last-child { color: var(--tf-subtle); transition: transform .18s ease; }
+.tf-activity-chevron-open { transform: rotate(180deg); }
+.tf-activity-menu-list, .tf-activity-calendar { position: absolute; z-index: 20; top: calc(100% + 8px); left: 0; min-width: 100%; border: 1px solid var(--tf-border-strong); border-radius: 13px; background: var(--tf-panel-strong); box-shadow: 0 18px 45px rgba(0, 0, 0, .32); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+.tf-activity-menu-list { padding: 5px; }
+.tf-activity-menu-option { display: flex; width: 100%; min-height: 37px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--tf-muted); font-size: 11px; text-align: left; cursor: pointer; }
+.tf-activity-menu-option:hover, .tf-activity-menu-option.focused { background: var(--tf-blue-soft); color: var(--tf-text); }
+.tf-activity-menu-option[aria-selected="true"] { color: var(--tf-blue); font-weight: 700; }
+.tf-activity-date-picker { min-width: 178px; }
+.tf-activity-date-control span { display: grid; gap: 2px; flex: 1; }
+.tf-activity-date-control small { color: var(--tf-subtle); font-size: 9px; font-weight: 650; letter-spacing: .02em; }
+.tf-activity-date-control:not(.has-value) { color: var(--tf-muted); }
+.tf-activity-calendar { width: 280px; padding: 13px; }
+.tf-activity-calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--tf-text); font-size: 12px; }
+.tf-activity-calendar-nav { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--tf-border); border-radius: 8px; background: var(--tf-panel); color: var(--tf-muted); cursor: pointer; }
+.tf-activity-calendar-nav:hover { border-color: var(--tf-border-strong); color: var(--tf-text); }
+.tf-activity-calendar-weekdays, .tf-activity-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; text-align: center; }
+.tf-activity-calendar-weekdays { color: var(--tf-subtle); font-size: 9px; font-weight: 700; }
+.tf-activity-calendar-day { display: grid; width: 30px; height: 30px; place-items: center; justify-self: center; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--tf-muted); font-size: 10px; cursor: pointer; }
+.tf-activity-calendar-day:hover:not(:disabled) { background: var(--tf-blue-soft); color: var(--tf-text); }
+.tf-activity-calendar-day.today { border-color: var(--tf-border-strong); color: var(--tf-blue); }
+.tf-activity-calendar-day.selected { background: var(--tf-blue-strong); color: white; box-shadow: 0 5px 14px rgba(63, 131, 248, .3); }
+.tf-activity-calendar-day:disabled { color: var(--tf-subtle); opacity: .35; cursor: not-allowed; }
+.tf-activity-calendar-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--tf-border); }
+.tf-activity-calendar-actions button { border: 0; background: transparent; color: var(--tf-blue); font-size: 10px; font-weight: 700; cursor: pointer; }
+.tf-activity-filter-error { margin: 12px 0 0; color: #fda4b8; font-size: 11px; }
+.tf-activity-list { display: grid; padding: 24px 4px 8px; }
+.tf-activity-item { position: relative; display: grid; grid-template-columns: 34px 38px minmax(0, 1fr); align-items: start; gap: 12px; min-height: 82px; }
+.tf-activity-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba(112, 167, 255, .24); border-radius: 11px; background: var(--tf-blue-soft); color: var(--tf-blue); }
+.tf-activity-line { position: absolute; top: 35px; bottom: -12px; left: 16px; width: 1px; background: var(--tf-border); }
+.tf-activity-item:last-child .tf-activity-line { display: none; }
+.tf-activity-avatar { display: grid; place-items: center; width: 30px; height: 30px; margin-top: 2px; border: 1px solid rgba(160, 196, 255, .25); border-radius: 10px; background: linear-gradient(145deg, #638fe2, #4b55ae); color: white; font-size: 9px; font-weight: 800; }
+.tf-activity-copy { min-width: 0; padding: 2px 0 18px; border-bottom: 1px solid var(--tf-border); }
+.tf-activity-item:last-child .tf-activity-copy { border-bottom: 0; }
+.tf-activity-copy p { margin: 0; color: var(--tf-muted); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.tf-activity-copy p strong { color: var(--tf-text); font-weight: 700; }
+.tf-activity-copy > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 7px; }
+.tf-activity-project { color: var(--tf-blue); font-size: 10px; font-weight: 700; cursor: pointer; }
+.tf-activity-copy time { color: var(--tf-subtle); font-size: 10px; }
+.tf-activity-state, .tf-activity-empty { display: grid; justify-items: center; gap: 12px; min-height: 290px; align-content: center; padding: 58px 20px; color: var(--tf-muted); text-align: center; font-size: 12px; }
+.tf-activity-spinner { width: 24px; height: 24px; border: 2px solid var(--tf-border); border-top-color: var(--tf-blue); border-radius: 50%; animation: tf-activity-spin .8s linear infinite; }
+@keyframes tf-activity-spin { to { transform: rotate(360deg); } }
+.tf-activity-empty-icon { display: grid; width: 68px; height: 68px; place-items: center; border: 1px solid var(--tf-border-strong); border-radius: 22px; background: var(--tf-blue-soft); color: var(--tf-blue); box-shadow: 0 12px 30px rgba(43, 103, 220, .14); }
+.tf-activity-empty h2 { margin: 2px 0 0; color: var(--tf-text); font-size: 20px; }
+.tf-activity-empty p { max-width: 390px; margin: 0; line-height: 1.7; }
+.tf-activity-alert { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; padding: 12px 15px; border: 1px solid rgba(251, 113, 133, .25); border-radius: 12px; background: rgba(251, 113, 133, .08); color: #fda4b8; font-size: 11px; }
+.tf-activity-alert button { display: grid; place-items: center; padding: 3px; border: 0; background: transparent; color: currentColor; cursor: pointer; }
+.tf-activity-retry { display: flex; justify-content: center; padding: 0 0 20px; }
+.tf-activity-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; padding-top: 22px; border-top: 1px solid var(--tf-border); color: var(--tf-muted); font-size: 11px; }
+.tf-activity-pagination .tf-secondary-button, .tf-activity-retry .tf-secondary-button { display: inline-flex; align-items: center; gap: 7px; }
+@media (max-width: 900px) {
+  .tf-activity-page { padding-top: 76px; }
+  .tf-activity-header { align-items: flex-start; }
+}
+@media (max-width: 620px) {
+  .tf-activity-header { flex-direction: column; }
+  .tf-activity-header .tf-page-header-actions { width: 100%; justify-content: flex-end; }
+  .tf-activity-toolbar { display: grid; grid-template-columns: 1fr 1fr; }
+  .tf-activity-menu, .tf-activity-date-picker { min-width: 0; width: 100%; }
+  .tf-activity-calendar { left: 50%; transform: translateX(-50%); }
+  .tf-activity-item { grid-template-columns: 34px 30px minmax(0, 1fr); gap: 9px; }
+  .tf-activity-line { left: 16px; }
+}
+@media (max-width: 390px) {
+  .tf-activity-toolbar { grid-template-columns: 1fr; }
+  .tf-activity-calendar { width: min(280px, calc(100vw - 48px)); }
+}

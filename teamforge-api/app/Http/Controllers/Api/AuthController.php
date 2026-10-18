@@ -7,13 +7,17 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     public function register(Request $request): JsonResponse
     {
+        $request->merge([
+            'name' => trim((string) $request->input('name')),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -62,6 +66,84 @@ class AuthController extends Controller
     {
         return response()->json([
             'user' => $request->user(),
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $request->merge([
+            'name' => trim((string) $request->input('name')),
+        ]);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'name' => $validated['name'],
+        ]);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    public function uploadProfilePhoto(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'photo' => [
+                'required',
+                'file',
+                'image',
+                'mimetypes:image/jpeg,image/png,image/webp',
+                'max:5120',
+            ],
+        ]);
+
+        $disk = Storage::disk('public');
+        $user = $request->user();
+        $oldPath = $user->avatar_path;
+        $newPath = $validated['photo']->store('avatars', 'public');
+
+        if (! is_string($newPath) || $newPath === '') {
+            return response()->json([
+                'message' => 'The profile picture could not be stored.',
+            ], 503);
+        }
+
+        try {
+            $user->update(['avatar_path' => $newPath]);
+        } catch (\Throwable $exception) {
+            $disk->delete($newPath);
+
+            throw $exception;
+        }
+
+        if ($oldPath && $oldPath !== $newPath) {
+            $disk->delete($oldPath);
+        }
+
+        return response()->json([
+            'message' => 'Profile picture updated successfully.',
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    public function removeProfilePhoto(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $path = $user->avatar_path;
+
+        if ($path) {
+            Storage::disk('public')->delete($path);
+            $user->update(['avatar_path' => null]);
+        }
+
+        return response()->json([
+            'message' => 'Profile picture removed successfully.',
+            'user' => $user->fresh(),
         ]);
     }
 
