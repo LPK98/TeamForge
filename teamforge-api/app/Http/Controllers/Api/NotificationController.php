@@ -17,6 +17,7 @@ class NotificationController extends Controller
 
         $notifications = $request->user()->notifications()
             ->with('projectInvitation.project:id,name')
+            ->with('projectInvitation.inviter:id,name,email,avatar_path')
             ->latest()
             ->limit(50)
             ->get()
@@ -96,6 +97,11 @@ class NotificationController extends Controller
                 'id' => $notification->projectInvitation->id,
                 'project_id' => $notification->projectInvitation->project_id,
                 'project_name' => $notification->projectInvitation->project->name,
+                'inviter' => $notification->projectInvitation->inviter ? [
+                    'id' => $notification->projectInvitation->inviter->id,
+                    'name' => $notification->projectInvitation->inviter->name,
+                    'avatar_url' => $notification->projectInvitation->inviter->avatar_url,
+                ] : null,
                 'status' => $notification->projectInvitation->status,
                 'expires_at' => $notification->projectInvitation->expires_at->toISOString(),
             ] : null,

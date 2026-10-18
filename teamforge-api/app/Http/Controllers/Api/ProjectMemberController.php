@@ -20,6 +20,7 @@ class ProjectMemberController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'avatar_url' => $user->avatar_url,
                 'role' => $user->pivot->role,
             ])->values();
 
@@ -28,6 +29,7 @@ class ProjectMemberController extends Controller
                 'id' => $ownedProject->user->id,
                 'name' => $ownedProject->user->name,
                 'email' => $ownedProject->user->email,
+                'avatar_url' => $ownedProject->user->avatar_url,
                 'role' => 'owner',
             ]])->merge($members)->values(),
         ]);

@@ -6,6 +6,7 @@ export interface NotificationInvitation {
   project_name: string;
   status: "pending" | "accepted" | "rejected" | "expired";
   expires_at: string;
+  inviter: { id: number; name: string; avatar_url?: string | null } | null;
 }
 
 export interface AppNotification {
