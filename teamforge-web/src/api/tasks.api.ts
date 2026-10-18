@@ -16,6 +16,8 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  assigned_to: number | null;
+  assignee?: { id: number; name: string; email: string; avatar_url?: string | null } | null;
   project?: TaskProject;
   created_at: string;
   updated_at: string;
@@ -28,6 +30,7 @@ export interface TaskPayload {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string;
+  assigned_to: number | null;
 }
 
 export interface TaskFilters {

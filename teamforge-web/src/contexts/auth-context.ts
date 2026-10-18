@@ -8,6 +8,9 @@ export interface AuthContextValue {
   error: string | null;
   login: (data: LoginData) => Promise<User>;
   register: (data: RegisterData) => Promise<User>;
+  updateUser: (name: string) => Promise<User>;
+  uploadProfilePhoto: (photo: File, onUploadProgress?: (progress: number) => void) => Promise<User>;
+  removeProfilePhoto: () => Promise<User>;
   logout: () => Promise<void>;
 }
 

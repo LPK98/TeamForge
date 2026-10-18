@@ -1,9 +1,13 @@
-import { AlertCircle, ArrowLeft, CalendarDays, Check, ChevronDown, Edit3, ListTodo, Plus, Search, Trash2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, CalendarDays, Check, Edit3, ListTodo, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { projectsApi, type Project } from "../api/projects.api";
+import { collaborationApi, type ProjectMember } from "../api/collaboration.api";
 import { tasksApi, type Task, type TaskPayload, type TaskPriority, type TaskStatus } from "../api/tasks.api";
 import { getAuthErrorMessage } from "./auth-errors";
+import { NotificationBell } from "../components/NotificationBell";
+import { WorkspaceSidebar } from "../components/WorkspaceSidebar";
+import { StyledSelect } from "../components/StyledSelect";
 import "./TasksPage.css";
 
 const statuses: Array<{ value: TaskStatus; label: string }> = [
@@ -17,7 +21,7 @@ const priorities: Array<{ value: TaskPriority; label: string }> = [
   { value: "high", label: "High" },
   { value: "urgent", label: "Urgent" },
 ];
-const emptyForm: TaskPayload = { project_id: 0, title: "", description: "", status: "todo", priority: "medium", due_date: "" };
+const emptyForm: TaskPayload = { project_id: 0, assigned_to: null, title: "", description: "", status: "todo", priority: "medium", due_date: "" };
 
 function labelFor(options: Array<{ value: string; label: string }>, value: string): string {
   return options.find((option) => option.value === value)?.label ?? value;
@@ -28,7 +32,7 @@ function formatDate(value: string | null): string {
 }
 
 function taskToForm(task: Task): TaskPayload {
-  return { project_id: task.project_id, title: task.title, description: task.description ?? "", status: task.status, priority: task.priority, due_date: task.due_date ?? "" };
+  return { project_id: task.project_id, assigned_to: task.assigned_to, title: task.title, description: task.description ?? "", status: task.status, priority: task.priority, due_date: task.due_date ?? "" };
 }
 
 function TaskForm({
@@ -46,6 +50,15 @@ function TaskForm({
 }) {
   const [form, setForm] = useState(initialValue);
   const [validationError, setValidationError] = useState("");
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+
+  useEffect(() => {
+    if (!form.project_id) {
+      return;
+    }
+
+    void collaborationApi.members(form.project_id).then(setMembers).catch(() => setMembers([]));
+  }, [form.project_id]);
 
   const update = (field: keyof TaskPayload, value: string) => setForm((current) => ({ ...current, [field]: field === "project_id" ? Number(value) : value }));
 
@@ -64,9 +77,10 @@ function TaskForm({
       <label className="tf-task-field"><span>Task title</span><input value={form.title} onChange={(event) => update("title", event.target.value)} maxLength={255} required autoFocus /></label>
       <label className="tf-task-field"><span>Description</span><textarea value={form.description} onChange={(event) => update("description", event.target.value)} maxLength={5000} rows={4} /></label>
       <div className="tf-task-form-grid">
-        <label className="tf-task-field"><span>Project</span><span className="tf-task-select-wrap"><select value={form.project_id || ""} onChange={(event) => update("project_id", event.target.value)} required><option value="" disabled>Select a project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={16} /></span></label>
-        <label className="tf-task-field"><span>Status</span><span className="tf-task-select-wrap"><select value={form.status} onChange={(event) => update("status", event.target.value)}>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><ChevronDown size={16} /></span></label>
-        <label className="tf-task-field"><span>Priority</span><span className="tf-task-select-wrap"><select value={form.priority} onChange={(event) => update("priority", event.target.value)}>{priorities.map((priority) => <option key={priority.value} value={priority.value}>{priority.label}</option>)}</select><ChevronDown size={16} /></span></label>
+        <label className="tf-task-field"><span>Project</span><StyledSelect ariaLabel="Task project" value={String(form.project_id || "")} options={[{ value: "", label: "Select a project", disabled: true }, ...projects.map((project) => ({ value: String(project.id), label: project.name }))]} onChange={(value) => update("project_id", value)} /></label>
+        <label className="tf-task-field"><span>Assignee</span><StyledSelect ariaLabel="Task assignee" value={String(form.assigned_to ?? "")} options={[{ value: "", label: "Unassigned" }, ...members.map((member) => ({ value: String(member.id), label: `${member.name} (${member.role})` }))]} onChange={(value) => update("assigned_to", value)} /></label>
+        <label className="tf-task-field"><span>Status</span><StyledSelect ariaLabel="Task status" value={form.status} options={statuses} onChange={(value) => update("status", value)} /></label>
+        <label className="tf-task-field"><span>Priority</span><StyledSelect ariaLabel="Task priority" value={form.priority} options={priorities} onChange={(value) => update("priority", value)} /></label>
         <label className="tf-task-field"><span>Due date</span><input type="date" value={form.due_date} onChange={(event) => update("due_date", event.target.value)} /></label>
       </div>
       <div className="tf-task-form-actions"><button type="button" className="tf-secondary-button" onClick={onCancel}>Cancel</button><button type="submit" className="tf-primary-button" disabled={isSaving || projects.length === 0}>{isSaving ? "Saving..." : <><Check size={16} />Save task</>}</button></div>
@@ -93,6 +107,7 @@ function TasksPage() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -151,10 +166,10 @@ function TasksPage() {
   };
 
   if (taskId) {
-    return <main className="tf-tasks-page"><div className="tf-tasks-container"><Link className="tf-task-back" to="/tasks"><ArrowLeft size={16} />Back to tasks</Link>{isLoading && <div className="tf-task-state">Loading task...</div>}{error && <p className="tf-task-alert" role="alert"><AlertCircle size={16} />{error}</p>}{selectedTask && !showForm && <section className="tf-task-detail tf-glass-card"><div className="tf-task-detail-heading"><div><div className="tf-section-kicker">TASK</div><h1>{selectedTask.title}</h1></div><span className={`tf-task-badge priority-${selectedTask.priority}`}>{labelFor(priorities, selectedTask.priority)}</span></div><p>{selectedTask.description || "No description provided."}</p><div className="tf-task-detail-meta"><span><ListTodo size={15} />{selectedTask.project?.name ?? "Project"}</span><span><CalendarDays size={15} />{formatDate(selectedTask.due_date)}</span><span className={`tf-task-badge status-${selectedTask.status}`}>{labelFor(statuses, selectedTask.status)}</span></div><div className="tf-task-form-actions"><button className="tf-secondary-button" onClick={() => openEdit(selectedTask)}><Edit3 size={16} />Edit task</button><button className="tf-danger-button" disabled={isDeleting} onClick={() => void remove(selectedTask)}><Trash2 size={16} />{isDeleting ? "Deleting..." : "Delete task"}</button></div></section>}{showForm && <TaskForm projects={projects} initialValue={formValue} isSaving={isSaving} onCancel={() => setShowForm(false)} onSubmit={save} />}</div></main>;
+    return <div className="tf-app"><WorkspaceSidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onNotice={setNotice} /><main className="tf-tasks-page"><div className="tf-tasks-container"><Link className="tf-task-back" to="/tasks"><ArrowLeft size={16} />Back to tasks</Link>{isLoading && <div className="tf-task-state">Loading task...</div>}{error && <p className="tf-task-alert" role="alert"><AlertCircle size={16} />{error}</p>}{selectedTask && !showForm && <section className="tf-task-detail tf-glass-card"><div className="tf-task-detail-heading"><div><div className="tf-section-kicker">TASK</div><h1>{selectedTask.title}</h1></div><span className={`tf-task-badge priority-${selectedTask.priority}`}>{labelFor(priorities, selectedTask.priority)}</span></div><p>{selectedTask.description || "No description provided."}</p><div className="tf-task-detail-meta"><span><ListTodo size={15} />{selectedTask.project?.name ?? "Project"}</span><span><CalendarDays size={15} />{formatDate(selectedTask.due_date)}</span><span className={`tf-task-badge status-${selectedTask.status}`}>{labelFor(statuses, selectedTask.status)}</span></div><div className="tf-task-form-actions"><button className="tf-secondary-button" onClick={() => openEdit(selectedTask)}><Edit3 size={16} />Edit task</button><button className="tf-danger-button" disabled={isDeleting} onClick={() => void remove(selectedTask)}><Trash2 size={16} />{isDeleting ? "Deleting..." : "Delete task"}</button></div></section>}{showForm && <TaskForm projects={projects} initialValue={formValue} isSaving={isSaving} onCancel={() => setShowForm(false)} onSubmit={save} />}</div></main></div>;
   }
 
-  return <main className="tf-tasks-page"><div className="tf-tasks-container"><header className="tf-tasks-header"><div><Link className="tf-task-back" to="/"><ArrowLeft size={16} />Dashboard</Link><div className="tf-section-kicker">WORKSPACE</div><h1>Tasks</h1><p>Turn project plans into focused, trackable work.</p></div><button className="tf-primary-button" onClick={openCreate} disabled={projects.length === 0}><Plus size={17} />New task</button></header>{notice && <div className="tf-task-notice" role="status">{notice}<button aria-label="Dismiss notification" onClick={() => setNotice("")}><X size={16} /></button></div>}{error && <p className="tf-task-alert" role="alert"><AlertCircle size={16} />{error}</p>}{showForm && <TaskForm projects={projects} initialValue={formValue} isSaving={isSaving} onCancel={() => setShowForm(false)} onSubmit={save} />}{!showForm && <><div className="tf-task-toolbar"><label className="tf-task-search"><Search size={17} /><input aria-label="Search tasks" placeholder="Search tasks..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><label className="tf-task-filter"><span className="sr-only">Project</span><select aria-label="Filter by project" value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)}><option value="all">All projects</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label><label className="tf-task-filter"><span className="sr-only">Status</span><select aria-label="Filter by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "all" | TaskStatus)}><option value="all">All statuses</option>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label><label className="tf-task-filter"><span className="sr-only">Priority</span><select aria-label="Filter by priority" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as "all" | TaskPriority)}><option value="all">All priorities</option>{priorities.map((priority) => <option key={priority.value} value={priority.value}>{priority.label}</option>)}</select></label></div>{isLoading && <div className="tf-task-state">Loading tasks...</div>}{!isLoading && visibleTasks.length === 0 && <div className="tf-task-empty tf-glass-card"><ListTodo size={28} /><h2>{tasks.length === 0 ? "No tasks yet" : "No matching tasks"}</h2><p>{tasks.length === 0 ? "Create a task from one of your projects to get started." : "Try a different search or filter."}</p>{tasks.length === 0 && projects.length > 0 && <button className="tf-primary-button" onClick={openCreate}><Plus size={17} />Create task</button>}</div>}<div className="tf-task-grid">{visibleTasks.map((task) => <article className="tf-task-card tf-glass-card" key={task.id}><div className="tf-task-card-top"><span className={`tf-task-badge priority-${task.priority}`}>{labelFor(priorities, task.priority)}</span><span className={`tf-task-badge status-${task.status}`}>{labelFor(statuses, task.status)}</span></div><h2>{task.title}</h2><p>{task.description || "No description provided."}</p><div className="tf-task-card-meta"><span><ListTodo size={14} />{task.project?.name ?? "Project"}</span><span><CalendarDays size={14} />{formatDate(task.due_date)}</span></div><div className="tf-task-card-actions"><Link className="tf-text-link" to={`/tasks/${task.id}`}>View details <span aria-hidden="true">→</span></Link><button className="tf-icon-button" aria-label={`Edit ${task.title}`} onClick={() => { openEdit(task); navigate(`/tasks/${task.id}`); }}><Edit3 size={16} /></button></div></article>)}</div></>}</div></main>;
+  return <div className="tf-app"><WorkspaceSidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onNotice={setNotice} /><main className="tf-tasks-page"><div className="tf-tasks-container"><header className="tf-tasks-header"><div><Link className="tf-task-back" to="/"><ArrowLeft size={16} />Dashboard</Link><div className="tf-section-kicker">WORKSPACE</div><h1>Tasks</h1><p>Turn project plans into focused, trackable work.</p></div><div className="tf-page-header-actions"><NotificationBell /><button className="tf-primary-button" onClick={openCreate} disabled={projects.length === 0}><Plus size={17} />New task</button></div></header>{notice && <div className="tf-task-notice" role="status">{notice}<button aria-label="Dismiss notification" onClick={() => setNotice("")}><X size={16} /></button></div>}{error && <p className="tf-task-alert" role="alert"><AlertCircle size={16} />{error}</p>}{showForm && <TaskForm projects={projects} initialValue={formValue} isSaving={isSaving} onCancel={() => setShowForm(false)} onSubmit={save} />}{!showForm && <><div className="tf-task-toolbar"><label className="tf-task-search"><Search size={17} /><input aria-label="Search tasks" placeholder="Search tasks..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><StyledSelect ariaLabel="Filter by project" value={projectFilter} options={[{ value: "all", label: "All projects" }, ...projects.map((project) => ({ value: String(project.id), label: project.name }))]} onChange={setProjectFilter} className="tf-task-filter" /><StyledSelect ariaLabel="Filter by status" value={statusFilter} options={[{ value: "all", label: "All statuses" }, ...statuses]} onChange={(value) => setStatusFilter(value as "all" | TaskStatus)} className="tf-task-filter" /><StyledSelect ariaLabel="Filter by priority" value={priorityFilter} options={[{ value: "all", label: "All priorities" }, ...priorities]} onChange={(value) => setPriorityFilter(value as "all" | TaskPriority)} className="tf-task-filter" /></div>{isLoading && <div className="tf-task-state">Loading tasks...</div>}{!isLoading && visibleTasks.length === 0 && <div className="tf-task-empty tf-glass-card"><ListTodo size={28} /><h2>{tasks.length === 0 ? "No tasks yet" : "No matching tasks"}</h2><p>{tasks.length === 0 ? "Create a task from one of your projects to get started." : "Try a different search or filter."}</p>{tasks.length === 0 && projects.length > 0 && <button className="tf-primary-button" onClick={openCreate}><Plus size={17} />Create task</button>}</div>}<div className="tf-task-grid">{visibleTasks.map((task) => <article className="tf-task-card tf-glass-card" key={task.id}><div className="tf-task-card-top"><span className={`tf-task-badge priority-${task.priority}`}>{labelFor(priorities, task.priority)}</span><span className={`tf-task-badge status-${task.status}`}>{labelFor(statuses, task.status)}</span></div><h2>{task.title}</h2><p>{task.description || "No description provided."}</p><div className="tf-task-card-meta"><span><ListTodo size={14} />{task.project?.name ?? "Project"}</span><span><CalendarDays size={14} />{formatDate(task.due_date)}</span></div><div className="tf-task-card-actions"><Link className="tf-text-link" to={`/tasks/${task.id}`}>View details <span aria-hidden="true">→</span></Link><button className="tf-icon-button" aria-label={`Edit ${task.title}`} onClick={() => { openEdit(task); navigate(`/tasks/${task.id}`); }}><Edit3 size={16} /></button></div></article>)}</div></>}</div></main></div>;
 }
 
 export default TasksPage;

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['project_id', 'title', 'description', 'status', 'priority', 'due_date'])]
+#[Fillable(['project_id', 'assigned_to', 'title', 'description', 'status', 'priority', 'due_date'])]
 class Task extends Model
 {
     use HasFactory;
@@ -22,5 +22,10 @@ class Task extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 }

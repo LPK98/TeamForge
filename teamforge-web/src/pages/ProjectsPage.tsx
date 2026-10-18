@@ -1,8 +1,13 @@
-import { AlertCircle, ArrowLeft, CalendarDays, Check, ChevronDown, Edit3, FolderKanban, ListTodo, Plus, Search, Trash2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, CalendarDays, Check, Edit3, FolderKanban, ListTodo, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { projectsApi, type Project, type ProjectPayload, type ProjectStatus } from "../api/projects.api";
 import { getAuthErrorMessage } from "./auth-errors";
+import { ProjectMembersPanel } from "../components/ProjectMembersPanel";
+import { InvitationsPanel } from "../components/InvitationsPanel";
+import { NotificationBell } from "../components/NotificationBell";
+import { WorkspaceSidebar } from "../components/WorkspaceSidebar";
+import { StyledSelect } from "../components/StyledSelect";
 import "./ProjectsPage.css";
 
 const statuses: Array<{ value: ProjectStatus; label: string }> = [
@@ -100,10 +105,7 @@ function ProjectForm({
       <div className="tf-project-form-grid">
         <label className="tf-project-field">
           <span>Status</span>
-          <span className="tf-project-select-wrap">
-            <select value={form.status} onChange={(event) => updateField("status", event.target.value)}>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
-            <ChevronDown size={16} aria-hidden="true" />
-          </span>
+          <StyledSelect ariaLabel="Project status" value={form.status} options={statuses} onChange={(value) => updateField("status", value)} />
         </label>
         <label className="tf-project-field">
           <span>Start date</span>
@@ -137,6 +139,7 @@ function ProjectsPage() {
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -230,7 +233,7 @@ function ProjectsPage() {
 
   if (projectId) {
     return (
-      <main className="tf-projects-page">
+      <div className="tf-app"><WorkspaceSidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onNotice={setNotice} /><main className="tf-projects-page">
         <div className="tf-projects-orb tf-projects-orb-one" aria-hidden="true" />
         <div className="tf-projects-container">
           <Link className="tf-project-back" to="/projects"><ArrowLeft size={16} />Back to projects</Link>
@@ -248,28 +251,30 @@ function ProjectsPage() {
               <div className="tf-project-form-actions"><button className="tf-secondary-button" onClick={() => openEdit(selectedProject)}><Edit3 size={16} />Edit project</button><button className="tf-danger-button" disabled={isDeleting} onClick={() => void handleDelete(selectedProject)}><Trash2 size={16} />{isDeleting ? "Deleting..." : "Delete project"}</button></div>
             </section>
           )}
+          {selectedProject && <ProjectMembersPanel projectId={selectedProject.id} />}
           {showForm && <ProjectForm initialValue={formValue} isSaving={isSaving} onCancel={() => setShowForm(false)} onSubmit={handleSave} />}
         </div>
-      </main>
+      </main></div>
     );
   }
 
   return (
-    <main className="tf-projects-page">
+    <div className="tf-app"><WorkspaceSidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onNotice={setNotice} /><main className="tf-projects-page">
       <div className="tf-projects-orb tf-projects-orb-one" aria-hidden="true" />
       <div className="tf-projects-orb tf-projects-orb-two" aria-hidden="true" />
       <div className="tf-projects-container">
-        <header className="tf-projects-header"><div><Link className="tf-project-back" to="/"><ArrowLeft size={16} />Dashboard</Link><div className="tf-section-kicker">WORKSPACE</div><h1>Projects</h1><p>Organize the work your team is building together.</p></div><button className="tf-primary-button" onClick={openCreate}><Plus size={17} />New project</button></header>
+        <header className="tf-projects-header"><div><Link className="tf-project-back" to="/"><ArrowLeft size={16} />Dashboard</Link><div className="tf-section-kicker">WORKSPACE</div><h1>Projects</h1><p>Organize the work your team is building together.</p></div><div className="tf-page-header-actions"><NotificationBell /><button className="tf-primary-button" onClick={openCreate}><Plus size={17} />New project</button></div></header>
+        <InvitationsPanel />
         {notice && <div className="tf-project-notice" role="status">{notice}<button aria-label="Dismiss notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
         {error && <p className="tf-project-alert" role="alert"><AlertCircle size={16} />{error}</p>}
         {showForm && <ProjectForm initialValue={formValue} isSaving={isSaving} onCancel={() => setShowForm(false)} onSubmit={handleSave} />}
-        {!showForm && <><div className="tf-project-toolbar"><label className="tf-project-search"><Search size={17} /><input aria-label="Search projects" placeholder="Search projects..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><label className="tf-project-filter"><span className="sr-only">Filter by status</span><select aria-label="Filter by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "all" | ProjectStatus)}><option value="all">All statuses</option>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><ChevronDown size={16} /></label></div>
+        {!showForm && <><div className="tf-project-toolbar"><label className="tf-project-search"><Search size={17} /><input aria-label="Search projects" placeholder="Search projects..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><StyledSelect ariaLabel="Filter by status" value={statusFilter} options={[{ value: "all", label: "All statuses" }, ...statuses]} onChange={(value) => setStatusFilter(value as "all" | ProjectStatus)} className="tf-project-filter" /></div>
           {isLoading && <div className="tf-project-state">Loading projects...</div>}
           {!isLoading && filteredProjects.length === 0 && <div className="tf-project-empty tf-glass-card"><FolderKanban size={28} /><h2>{projects.length === 0 ? "No projects yet" : "No matching projects"}</h2><p>{projects.length === 0 ? "Create your first project to get your workspace moving." : "Try a different search or status filter."}</p>{projects.length === 0 && <button className="tf-primary-button" onClick={openCreate}><Plus size={17} />Create project</button>}</div>}
           <div className="tf-project-grid">{filteredProjects.map((project) => <article key={project.id} className="tf-project-card tf-glass-card"><div className="tf-project-card-top"><span className="tf-project-large-icon"><FolderKanban size={20} /></span><span className={`tf-project-status status-${project.status}`}><span />{statusLabel(project.status)}</span></div><h2>{project.name}</h2><p>{project.description || "No description provided."}</p><div className="tf-project-card-meta"><span><CalendarDays size={14} />{formatDate(project.due_date)}</span><span><ListTodo size={14} />{project.tasks_count ?? 0} tasks · {project.progress ?? 0}%</span></div><div className="tf-project-card-actions"><Link className="tf-text-link" to={`/projects/${project.id}`}>View details <span aria-hidden="true">→</span></Link><button className="tf-icon-button" aria-label={`Edit ${project.name}`} onClick={() => { openEdit(project); navigate(`/projects/${project.id}`); }}><Edit3 size={16} /></button></div></article>)}</div>
         </>}
       </div>
-    </main>
+    </main></div>
   );
 }
 

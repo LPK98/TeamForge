@@ -9,6 +9,10 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
+import TeamMembersPage from './pages/TeamMembersPage'
+import ActivityPage from './pages/ActivityPage'
+import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -22,6 +26,10 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/projects/:projectId" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
           <Route path="/tasks/:taskId" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+          <Route path="/team-members" element={<ProtectedRoute><TeamMembersPage /></ProtectedRoute>} />
+          <Route path="/activity" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

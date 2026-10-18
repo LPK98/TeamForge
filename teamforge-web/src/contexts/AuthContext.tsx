@@ -80,6 +80,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return response.user;
   }, []);
 
+  const updateUser = useCallback(async (name: string): Promise<User> => {
+    const updatedUser = await authApi.updateProfile(name);
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
+  const uploadProfilePhoto = useCallback(async (photo: File, onUploadProgress?: (progress: number) => void): Promise<User> => {
+    const updatedUser = await authApi.uploadProfilePhoto(photo, onUploadProgress);
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
+  const removeProfilePhoto = useCallback(async (): Promise<User> => {
+    const updatedUser = await authApi.removeProfilePhoto();
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       await authApi.logout();
@@ -97,9 +115,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       error,
       login,
       register,
+      updateUser,
+      uploadProfilePhoto,
+      removeProfilePhoto,
       logout,
     }),
-    [user, isLoading, error, login, register, logout],
+    [user, isLoading, error, login, register, updateUser, uploadProfilePhoto, removeProfilePhoto, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

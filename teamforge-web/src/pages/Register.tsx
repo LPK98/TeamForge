@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, Zap } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, UserRound, Zap } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/auth-context";
@@ -23,8 +23,14 @@ function Register() {
     setError("");
     setSuccess("");
 
-    if (!name.trim() || !email.trim() || !password || !passwordConfirmation) {
+    const trimmedName = name.trim();
+    if (!trimmedName || !email.trim() || !password || !passwordConfirmation) {
       setError("Complete all fields to create your account.");
+      return;
+    }
+
+    if (trimmedName.length > 255) {
+      setError("Full name must be 255 characters or fewer.");
       return;
     }
 
@@ -42,7 +48,7 @@ function Register() {
 
     try {
       await register({
-        name: name.trim(),
+        name: trimmedName,
         email: email.trim(),
         password,
         password_confirmation: passwordConfirmation,
@@ -87,8 +93,8 @@ function Register() {
             {success && <p className="tf-auth-success" role="status">{success}</p>}
 
             <div className="tf-auth-field">
-              <label htmlFor="register-name">Full name</label>
-              <input id="register-name" className="tf-auth-input" type="text" autoComplete="name" placeholder="Your name" value={name} onChange={(event) => setName(event.target.value)} required />
+              <label htmlFor="register-name"><UserRound size={14} aria-hidden="true" />Full name</label>
+              <input id="register-name" className="tf-auth-input" type="text" autoComplete="name" placeholder="Enter your full name" value={name} onChange={(event) => setName(event.target.value)} maxLength={255} required />
             </div>
 
             <div className="tf-auth-field">

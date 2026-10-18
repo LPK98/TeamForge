@@ -1,0 +1,6 @@
+@media (max-width: 900px) {
+  .tf-sidebar { position: fixed; z-index: 40; left: 0; transform: translateX(-105%); transition: transform .24s ease; box-shadow: 18px 0 50px rgba(0, 0, 0, .25); }
+  .tf-sidebar.tf-sidebar-open { transform: translateX(0); }
+  .tf-mobile-close, .tf-menu-trigger { display: inline-grid; }
+  .tf-mobile-backdrop { position: fixed; z-index: 35; inset: 0; display: block; border: 0; background: rgba(2, 7, 17, .55); backdrop-filter: blur(3px); }
+}

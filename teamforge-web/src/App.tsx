@@ -2,7 +2,6 @@ import {
   Activity,
   ArrowDownRight,
   ArrowUpRight,
-  Bell,
   CheckCircle2,
   CircleHelp,
   Clock3,
@@ -22,6 +21,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { projectsApi, type Project } from "./api/projects.api";
 import { tasksApi, type Task } from "./api/tasks.api";
 import { useAuth } from "./contexts/auth-context";
+import { NotificationBell } from "./components/NotificationBell";
+import { UserAvatar } from "./components/UserAvatar";
 import "./App.css";
 
 const navItems = [
@@ -33,7 +34,7 @@ const navItems = [
 ];
 
 function App() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,6 +43,27 @@ function App() {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(new Date());
+    const interval = window.setInterval(updateTime, 60_000);
+    window.addEventListener("focus", updateTime);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", updateTime);
+    };
+  }, []);
+
+  const firstName = user?.name.trim().split(/\s+/)[0] || "there";
+  const hour = currentTime.getHours();
+  const greeting = hour >= 5 && hour < 12
+    ? "Good morning"
+    : hour >= 12 && hour < 17
+      ? "Good afternoon"
+      : "Good evening";
+  const greetingEmoji = hour >= 5 && hour < 12 ? "🌅" : hour >= 12 && hour < 17 ? "☀️" : "🌇";
 
   useEffect(() => {
     let isMounted = true;
@@ -99,6 +121,7 @@ function App() {
     try {
       const updatedTask = await tasksApi.update(task.id, {
         project_id: task.project_id,
+        assigned_to: task.assigned_to,
         title: task.title,
         description: task.description ?? "",
         status: nextStatus,
@@ -114,12 +137,15 @@ function App() {
   const handleNewProject = () => navigate("/projects");
 
   const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
     try {
       await logout();
-      navigate("/login", { replace: true });
     } catch {
       setNotice("You’ve been signed out locally. We couldn’t reach the server.");
+    } finally {
       navigate("/login", { replace: true });
+      setLoggingOut(false);
     }
   };
 
@@ -145,12 +171,10 @@ function App() {
               <Link key={label} to={href} className="tf-nav-link" onClick={() => setMenuOpen(false)}>
                 <Icon size={18} strokeWidth={1.8} />
                 <span>{label}</span>
-                {label === "My Tasks" && <span className="tf-nav-count">3</span>}
               </Link>
             ) : <a key={label} href={href} className={`tf-nav-link ${index === 0 ? "active" : ""}`} onClick={() => setMenuOpen(false)}>
               <Icon size={18} strokeWidth={1.8} />
               <span>{label}</span>
-              {label === "My Tasks" && <span className="tf-nav-count">3</span>}
             </a>
           ))}
         </nav>
@@ -165,13 +189,15 @@ function App() {
         </div>
 
         <div className="tf-profile">
-          <div className="tf-avatar">LP</div>
+          <Link className="tf-profile-main" to="/profile" onClick={() => setMenuOpen(false)} aria-label="Open your profile">
+          <UserAvatar name={user?.name ?? "there"} avatarUrl={user?.avatar_url} size="small" className="tf-avatar" />
           <div className="tf-profile-copy">
-            <p>Team Admin</p>
-            <span>Workspace owner</span>
+            <p>{user?.name ?? "Team member"}</p>
+            <span>Personal account</span>
           </div>
-          <button className="tf-icon-button" aria-label="Settings" onClick={() => setNotice("Workspace settings are coming soon.")}><Settings size={18} /></button>
-          <button className="tf-icon-button" aria-label="Log out" onClick={() => void handleLogout()}><LogOut size={18} /></button>
+          </Link>
+          <Link className="tf-icon-button" aria-label="Settings" to="/settings" onClick={() => setMenuOpen(false)}><Settings size={18} /></Link>
+          <button className="tf-icon-button" aria-label="Log out" disabled={loggingOut} onClick={() => void handleLogout()}><LogOut size={18} /></button>
         </div>
       </aside>
 
@@ -187,9 +213,7 @@ function App() {
               <input aria-label="Search tasks" placeholder="Search tasks..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
               <kbd>⌘ K</kbd>
             </label>
-            <button className="tf-icon-button tf-notification" aria-label="Notifications" onClick={() => setNotice("You're all caught up — no new notifications.")}>
-              <Bell size={19} /><span />
-            </button>
+            <NotificationBell />
             <button className="tf-primary-button" onClick={handleNewProject}><Plus size={17} /><span>New project</span></button>
           </div>
         </header>
@@ -199,7 +223,7 @@ function App() {
         <section className="tf-welcome">
           <div>
             <div className="tf-eyebrow"><span className="tf-live-dot" /> YOUR WORKSPACE AT A GLANCE</div>
-            <h2>Good morning, Lal <span className="tf-wave" role="img" aria-label="waving hand">👋</span></h2>
+            <h2>{greeting}, {firstName}! <span className="tf-wave" role="img" aria-label={`${greeting} ${greetingEmoji}`}>{greetingEmoji}</span></h2>
             <p>Here’s what’s happening with your projects today.</p>
           </div>
           <div className="tf-date-pill"><span className="tf-date-dot" /> Monday, October 19</div>
@@ -258,7 +282,7 @@ function App() {
                 <h3>Focus overview</h3>
                 <p>A little progress adds up.</p>
               </div>
-              <div className="tf-focus-icon"><Activity size={19} /></div>
+              <div className="tf-page-header-actions"><Link className="tf-text-link" to="/activity">View activity <span aria-hidden="true">→</span></Link><div className="tf-focus-icon"><Activity size={19} /></div></div>
             </div>
             <div className="tf-focus-ring-wrap">
               <div className="tf-focus-ring"><div><strong>68%</strong><span>weekly focus</span></div></div>

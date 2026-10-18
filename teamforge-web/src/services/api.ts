@@ -8,6 +8,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  avatar_url?: string | null;
   email_verified_at?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -20,6 +21,16 @@ export interface AuthResponse {
 }
 
 export interface ApiUserResponse {
+  user: User;
+}
+
+export interface ProfileUpdateResponse {
+  message: string;
+  user: User;
+}
+
+export interface ProfilePhotoResponse {
+  message: string;
   user: User;
 }
 
@@ -78,6 +89,28 @@ export const authApi = {
 
   me: async (): Promise<User> => {
     const response = await api.get<ApiUserResponse>("/user");
+    return response.data.user;
+  },
+
+  updateProfile: async (name: string): Promise<User> => {
+    const response = await api.patch<ProfileUpdateResponse>("/profile", { name });
+    return response.data.user;
+  },
+
+  uploadProfilePhoto: async (photo: File, onUploadProgress?: (progress: number) => void): Promise<User> => {
+    const formData = new FormData();
+    formData.append("photo", photo);
+    const response = await api.post<ProfilePhotoResponse>("/profile/photo", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (event) => {
+        if (event.total) onUploadProgress?.(Math.round((event.loaded / event.total) * 100));
+      },
+    });
+    return response.data.user;
+  },
+
+  removeProfilePhoto: async (): Promise<User> => {
+    const response = await api.delete<ProfilePhotoResponse>("/profile/photo");
     return response.data.user;
   },
 
