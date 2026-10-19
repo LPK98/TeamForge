@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collaborationApi } from "../api/collaboration.api";
 import { notificationsApi, type AppNotification } from "../api/notifications.api";
 import { getAuthErrorMessage } from "../pages/auth-errors";
+import { UserAvatar } from "./UserAvatar";
 import "./NotificationBell.css";
 
 const POLL_INTERVAL = 45_000;
@@ -119,6 +120,7 @@ export function NotificationBell() {
         <div className="tf-notification-list">
           {notifications.map((notification) => <article className={`tf-notification-item ${notification.is_read ? "" : "is-unread"}`} key={notification.id}>
             <button className="tf-notification-content" onClick={() => { void markRead(notification); if (notification.invitation) navigate("/projects"); }}>
+              {notification.invitation?.inviter && <UserAvatar name={notification.invitation.inviter.name} avatarUrl={notification.invitation.inviter.avatar_url} size="small" />}
               <strong>{notification.title}</strong><span>{notification.message}</span><small><span className="tf-notification-project">{notification.invitation?.project_name}</span>{relativeTime(notification.created_at)}</small>
             </button>
             {notification.invitation?.status === "pending" && <div className="tf-notification-actions"><button aria-label="Accept invitation" disabled={busyId === notification.id} onClick={() => void respond(notification, true)}><Check size={14} /></button><button aria-label="Reject invitation" disabled={busyId === notification.id} onClick={() => void respond(notification, false)}><X size={14} /></button></div>}

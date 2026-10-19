@@ -50,6 +50,7 @@ class TeamMemberController extends Controller
                     'id' => $member->id,
                     'name' => $member->name,
                     'email' => $member->email,
+                    'avatar_url' => $member->avatar_url,
                     'created_at' => $member->created_at?->toISOString(),
                     'projects' => [],
                 ]);

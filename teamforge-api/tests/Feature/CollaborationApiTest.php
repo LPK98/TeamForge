@@ -9,6 +9,7 @@ use App\Models\ProjectInvitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CollaborationApiTest extends TestCase
@@ -134,7 +135,9 @@ class CollaborationApiTest extends TestCase
             ->getJson('/api/notifications')
             ->assertOk()
             ->assertJsonPath('unread_count', 1)
-            ->assertJsonPath('notifications.0.invitation.id', $created->json('invitation.id'));
+            ->assertJsonPath('notifications.0.invitation.id', $created->json('invitation.id'))
+            ->assertJsonPath('notifications.0.invitation.inviter.id', $owner->id)
+            ->assertJsonPath('notifications.0.invitation.inviter.avatar_url', null);
 
         Auth::forgetGuards();
         $this->withToken($otherUser->createToken('test')->plainTextToken)
@@ -196,6 +199,28 @@ class CollaborationApiTest extends TestCase
             ->assertJsonFragment(['name' => 'Shared project', 'role' => 'member'])
             ->assertJsonFragment(['name' => 'Second project', 'role' => 'manager'])
             ->assertJsonMissing(['name' => 'Private project']);
+    }
+
+    public function test_member_responses_include_each_members_public_avatar_url(): void
+    {
+        Storage::fake('public');
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $member->update(['avatar_path' => 'avatars/member.webp']);
+        Storage::disk('public')->put('avatars/member.webp', 'image');
+        $project = Project::factory()->for($owner)->create();
+        $project->members()->attach($member->id, ['role' => 'member']);
+        $token = $owner->createToken('test')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/team-members')
+            ->assertOk()
+            ->assertJsonPath('members.1.avatar_url', Storage::disk('public')->url('avatars/member.webp'));
+
+        $this->withToken($token)
+            ->getJson("/api/projects/{$project->id}/members")
+            ->assertOk()
+            ->assertJsonPath('members.1.avatar_url', Storage::disk('public')->url('avatars/member.webp'));
     }
 
     public function test_activity_records_actor_and_isolated_project_events(): void
