@@ -34,5 +34,21 @@ export function getAuthErrorMessage(error: unknown, fallback: string): string {
     return "Please check the entered details and try again.";
   }
 
+  if (error.response?.status === 401) {
+    return "The email or password is incorrect.";
+  }
+
+  if (error.response?.status === 404) {
+    return "The sign-in service is unavailable. Please try again shortly.";
+  }
+
+  if (error.response && error.response.status >= 500) {
+    return "The sign-in service is temporarily unavailable. Please try again shortly.";
+  }
+
+  if (!error.response || error.code === "ERR_NETWORK") {
+    return "Unable to reach the sign-in service. Please check your connection and try again.";
+  }
+
   return fallback;
 }
