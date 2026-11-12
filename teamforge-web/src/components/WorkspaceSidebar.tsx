@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, CircleHelp, FolderKanban, LayoutDashboard, LogOut, Settings, Users, X, Zap } from "lucide-react";
+import { Activity, CheckCircle2, CircleHelp, FolderKanban, GitBranch, LayoutDashboard, LogOut, Settings, Users, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/auth-context";
@@ -11,6 +11,7 @@ const navItems = [
   { label: "My Tasks", href: "/tasks", icon: CheckCircle2 },
   { label: "Team Members", href: "/team-members", icon: Users },
   { label: "Activity", href: "/activity", icon: Activity },
+  { label: "GitHub", href: "/github/repositories", icon: GitBranch },
 ];
 
 export function WorkspaceSidebar({
@@ -42,7 +43,9 @@ export function WorkspaceSidebar({
     <>
       <aside className={`tf-sidebar ${menuOpen ? "tf-sidebar-open" : ""}`}>
         <div className="tf-brand">
-          <div className="tf-brand-mark"><Zap size={22} fill="currentColor" /></div>
+          <div className="tf-brand-mark">
+            <img className="tf-brand-logo" src="/teamforge-logo.png" alt="" />
+          </div>
           <div><h1>TeamForge</h1><p>Work better together</p></div>
           <button className="tf-icon-button tf-mobile-close" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X size={19} /></button>
         </div>

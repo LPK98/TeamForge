@@ -13,6 +13,11 @@ import TeamMembersPage from './pages/TeamMembersPage'
 import ActivityPage from './pages/ActivityPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import GitHubRepositoriesPage from './pages/GitHubRepositoriesPage'
+import GitHubRepositoryDetailsPage from './pages/GitHubRepositoryDetailsPage'
+import { applyTheme, getThemePreference } from './theme'
+
+applyTheme(getThemePreference())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -30,6 +35,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/activity" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/github/repositories" element={<ProtectedRoute><GitHubRepositoriesPage /></ProtectedRoute>} />
+          <Route path="/github/repositories/:owner/:name" element={<ProtectedRoute><GitHubRepositoryDetailsPage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

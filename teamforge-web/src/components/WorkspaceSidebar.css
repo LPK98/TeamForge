@@ -4,3 +4,11 @@
   .tf-mobile-close, .tf-menu-trigger { display: inline-grid; }
   .tf-mobile-backdrop { position: fixed; z-index: 35; inset: 0; display: block; border: 0; background: rgba(2, 7, 17, .55); backdrop-filter: blur(3px); }
 }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .tf-sidebar { background: rgba(255, 255, 255, .86); box-shadow: 8px 0 30px rgba(39, 61, 97, .08); }
+  :root:not([data-theme="dark"]) .tf-help-card { background: linear-gradient(145deg, #edf4ff, #f8fbff); }
+}
+
+:root[data-theme="light"] .tf-sidebar { background: rgba(255, 255, 255, .86); box-shadow: 8px 0 30px rgba(39, 61, 97, .08); }
+:root[data-theme="light"] .tf-help-card { background: linear-gradient(145deg, #edf4ff, #f8fbff); }

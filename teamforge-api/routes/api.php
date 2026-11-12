@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HealthCheckController;
+use App\Http\Controllers\Api\GitHubController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectInvitationController;
@@ -26,6 +27,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/profile/photo', [AuthController::class, 'removeProfilePhoto']);
     Route::get('/activities', [ActivityController::class, 'index']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/github/status', [GitHubController::class, 'status']);
+    Route::get('/github/connect', [GitHubController::class, 'connect']);
+    Route::post('/github/disconnect', [GitHubController::class, 'disconnect']);
+    Route::delete('/github/connect', [GitHubController::class, 'disconnect']);
+    Route::post('/github/repos/sync', [GitHubController::class, 'sync']);
+    Route::post('/github/repositories/sync', [GitHubController::class, 'sync']);
+    Route::get('/github/repos', [GitHubController::class, 'repositories']);
+    Route::get('/github/repos/{owner}/{name}', [GitHubController::class, 'showRepository']);
+    Route::get('/github/repositories', [GitHubController::class, 'repositories']);
+    Route::get('/github/repositories/{owner}/{name}', [GitHubController::class, 'showRepository']);
+    Route::post('/github/repositories/{owner}/{name}/import', [GitHubController::class, 'importByRepository']);
+    Route::post('/projects/{project}/repositories/import', [GitHubController::class, 'import']);
+    Route::get('/projects/{project}/repositories', [GitHubController::class, 'projectRepositories']);
+    Route::delete('/projects/{project}/repositories/{repository}', [GitHubController::class, 'removeProjectRepository']);
     Route::apiResource('projects', ProjectController::class)->except(['create', 'edit']);
     Route::apiResource('tasks', TaskController::class)->except(['create', 'edit']);
     Route::get('/team-members', [TeamMemberController::class, 'index']);
@@ -41,3 +56,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read']);
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
 });
+
+Route::get('/github/callback', [GitHubController::class, 'callback']);
