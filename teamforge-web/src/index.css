@@ -54,27 +54,52 @@ a { color: inherit; }
 ::selection { color: #fff; background: rgba(63, 131, 248, 0.45); }
 
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --tf-bg: #eef3fb;
-    --tf-bg-soft: #f5f8ff;
-    --tf-panel: rgba(255, 255, 255, 0.68);
-    --tf-panel-strong: rgba(255, 255, 255, 0.88);
-    --tf-panel-hover: rgba(255, 255, 255, 0.9);
-    --tf-border: rgba(71, 97, 140, 0.14);
-    --tf-border-strong: rgba(63, 131, 248, 0.25);
-    --tf-text: #18243a;
-    --tf-muted: #5f6e85;
-    --tf-subtle: #8390a5;
+    --tf-bg: #f4f7fc;
+    --tf-bg-soft: #eaf0f9;
+    --tf-panel: rgba(255, 255, 255, 0.92);
+    --tf-panel-strong: #ffffff;
+    --tf-panel-hover: #f7faff;
+    --tf-border: rgba(44, 67, 102, 0.16);
+    --tf-border-strong: rgba(37, 99, 235, 0.34);
+    --tf-text: #17233a;
+    --tf-muted: #50627d;
+    --tf-subtle: #6d7f9b;
     --tf-blue: #2563eb;
     --tf-blue-strong: #2563eb;
     --tf-blue-soft: rgba(59, 130, 246, 0.1);
     --tf-shadow: 0 24px 70px rgba(39, 61, 97, 0.1);
   }
-  body {
+  :root:not([data-theme="dark"]) body {
     background:
       radial-gradient(ellipse at 12% 0%, rgba(94, 151, 255, 0.18), transparent 35rem),
       radial-gradient(ellipse at 92% 22%, rgba(139, 124, 246, 0.12), transparent 30rem),
       linear-gradient(145deg, #f3f7ff 0%, #eaf0fb 55%, #f6f8fd 100%);
   }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --tf-bg: #f4f7fc;
+  --tf-bg-soft: #eaf0f9;
+  --tf-panel: rgba(255, 255, 255, 0.92);
+  --tf-panel-strong: #ffffff;
+  --tf-panel-hover: #f7faff;
+  --tf-border: rgba(44, 67, 102, 0.16);
+  --tf-border-strong: rgba(37, 99, 235, 0.34);
+  --tf-text: #17233a;
+  --tf-muted: #50627d;
+  --tf-subtle: #6d7f9b;
+  --tf-blue: #2563eb;
+  --tf-blue-strong: #2563eb;
+  --tf-blue-soft: rgba(59, 130, 246, 0.1);
+  --tf-shadow: 0 24px 70px rgba(39, 61, 97, 0.1);
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(94, 151, 255, 0.18), transparent 35rem),
+    radial-gradient(ellipse at 92% 22%, rgba(139, 124, 246, 0.12), transparent 30rem),
+    linear-gradient(145deg, #f3f7ff 0%, #eaf0fb 55%, #f6f8fd 100%);
 }

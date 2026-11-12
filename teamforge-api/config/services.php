@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'github' => [
+        'client_id' => env('GITHUB_CLIENT_ID'),
+        'client_secret' => env('GITHUB_CLIENT_SECRET'),
+        'callback_url' => env('GITHUB_CALLBACK_URL'),
+        'frontend_redirect_url' => env('GITHUB_FRONTEND_REDIRECT_URL'),
+        'api_url' => env('GITHUB_API_URL', 'https://api.github.com'),
+        'scope' => env('GITHUB_SCOPE', 'read:user user:email repo'),
+    ],
+
 ];

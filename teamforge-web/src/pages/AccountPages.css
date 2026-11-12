@@ -40,9 +40,19 @@
 .tf-settings-status { display: flex; align-items: center; gap: 8px; margin-top: 24px; color: var(--tf-text); font-size: 12px; font-weight: 650; }
 .tf-settings-dot { width: 7px; height: 7px; border-radius: 50%; background: #55d6a6; box-shadow: 0 0 10px rgba(85, 214, 166, .7); }
 .tf-settings-muted { margin: 12px 0 0; color: var(--tf-muted); font-size: 11px; line-height: 1.7; }
+.tf-theme-options { display: flex; gap: 8px; margin-top: 22px; }
+.tf-theme-option { min-height: 36px; padding: 0 13px; border: 1px solid var(--tf-border); border-radius: 10px; background: transparent; color: var(--tf-muted); cursor: pointer; font-size: 11px; font-weight: 650; }
+.tf-theme-option:hover, .tf-theme-option.active { border-color: var(--tf-blue); background: var(--tf-blue-soft); color: var(--tf-text); }
+.tf-settings-logout { margin-top: 20px; }
 @media (max-width: 900px) { .tf-account-page { padding-top: 76px; } }
 @media (max-width: 650px) {
   .tf-account-header { align-items: flex-start; flex-direction: column; }
   .tf-account-grid, .tf-settings-grid { grid-template-columns: 1fr; }
   .tf-account-header .tf-page-header-actions { width: 100%; justify-content: flex-end; }
 }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .tf-account-readonly { background: #f7faff; }
+}
+
+:root[data-theme="light"] .tf-account-readonly { background: #f7faff; }

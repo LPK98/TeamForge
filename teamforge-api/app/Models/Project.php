@@ -49,6 +49,11 @@ class Project extends Model
         return $this->hasMany(Activity::class);
     }
 
+    public function repositories(): HasMany
+    {
+        return $this->hasMany(ProjectRepository::class);
+    }
+
     public function isAccessibleBy(User $user): bool
     {
         return $this->user_id === $user->id || $this->members()->whereKey($user->id)->exists();
