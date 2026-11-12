@@ -72,3 +72,11 @@
   .tf-task-form-grid { grid-template-columns: 1fr; }
   .tf-task-form-actions { flex-wrap: wrap; }
 }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .tf-glass-card,
+  :root:not([data-theme="dark"]) .tf-task-form { box-shadow: var(--tf-shadow), inset 0 1px 0 rgba(255, 255, 255, .8); }
+}
+
+:root[data-theme="light"] .tf-glass-card,
+:root[data-theme="light"] .tf-task-form { box-shadow: var(--tf-shadow), inset 0 1px 0 rgba(255, 255, 255, .8); }

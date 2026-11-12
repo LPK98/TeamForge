@@ -108,3 +108,15 @@
   .tf-member-invite { align-items: stretch; flex-wrap: wrap; }
   .tf-member-invite input { flex-basis: calc(100% - 28px); }
 }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .tf-glass-card,
+  :root:not([data-theme="dark"]) .tf-project-form { box-shadow: var(--tf-shadow), inset 0 1px 0 rgba(255, 255, 255, .8); }
+  :root:not([data-theme="dark"]) .tf-member-row,
+  :root:not([data-theme="dark"]) .tf-invitation-row { background: #f8faff; }
+}
+
+:root[data-theme="light"] .tf-glass-card,
+:root[data-theme="light"] .tf-project-form { box-shadow: var(--tf-shadow), inset 0 1px 0 rgba(255, 255, 255, .8); }
+:root[data-theme="light"] .tf-member-row,
+:root[data-theme="light"] .tf-invitation-row { background: #f8faff; }

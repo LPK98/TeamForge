@@ -13,7 +13,7 @@ import {
   Search,
   Settings,
   Users,
-  Zap,
+
   X,
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
@@ -29,7 +29,7 @@ const navItems = [
   { label: "Dashboard", href: "#dashboard", icon: LayoutDashboard },
   { label: "Projects", href: "/projects", icon: FolderKanban },
   { label: "My Tasks", href: "/tasks", icon: CheckCircle2 },
-  { label: "Team Members", href: "#team", icon: Users },
+  { label: "Team Members", href: "/team-members", icon: Users },
   { label: "Activity", href: "#activity", icon: Activity },
 ];
 
@@ -156,7 +156,9 @@ function App() {
 
       <aside className={`tf-sidebar ${menuOpen ? "tf-sidebar-open" : ""}`}>
         <div className="tf-brand">
-          <div className="tf-brand-mark"><Zap size={22} fill="currentColor" /></div>
+          <div className="tf-brand-mark">
+            <img className="tf-brand-logo" src="/teamforge-logo.png" alt="" />
+          </div>
           <div>
             <h1>TeamForge</h1>
             <p>Work better together</p>
