@@ -1,10 +1,14 @@
 import { AlertCircle, LoaderCircle } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/auth-context";
+import { setToken } from "../services/api";
 import AuthLayout from "./AuthLayout";
 import PasswordField from "./PasswordField";
 import { getAuthErrorMessage } from "./auth-errors";
+
+const GOOGLE_REDIRECT_URL = "http://127.0.0.1:8000/api/auth/google/redirect";
+const GITHUB_REDIRECT_URL = "http://127.0.0.1:8000/api/auth/github/redirect";
 
 function Login() {
   const { login } = useAuth();
@@ -12,7 +16,19 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
+  const [isGitHubRedirecting, setIsGitHubRedirecting] = useState(false);
+  const [error, setError] = useState(() => new URLSearchParams(window.location.search).get("oauth_error") ?? "");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthToken = params.get("oauth_token");
+
+    if (oauthToken) {
+      setToken(oauthToken);
+      window.location.replace("/");
+    }
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,6 +49,20 @@ function Login() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    if (isSubmitting || isGoogleRedirecting || isGitHubRedirecting) return;
+
+    setIsGoogleRedirecting(true);
+    window.location.assign(GOOGLE_REDIRECT_URL);
+  };
+
+  const handleGitHubLogin = () => {
+    if (isSubmitting || isGoogleRedirecting || isGitHubRedirecting) return;
+
+    setIsGitHubRedirecting(true);
+    window.location.assign(GITHUB_REDIRECT_URL);
   };
 
   return (
@@ -93,13 +123,25 @@ function Login() {
       <div className="tf-auth-social" aria-label="Social sign-in options">
         <div className="tf-auth-social-divider"><span>or continue with</span></div>
         <div className="tf-auth-social-options">
-          <button className="tf-auth-social-button" type="button" disabled title="Google sign-in is coming soon">
+          <button
+            className="tf-auth-social-button"
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isSubmitting || isGoogleRedirecting || isGitHubRedirecting}
+            aria-busy={isGoogleRedirecting}
+          >
             <span className="tf-auth-google-mark" aria-hidden="true">G</span>
-            Google
+            {isGoogleRedirecting ? "Connecting..." : "Google"}
           </button>
-          <button className="tf-auth-social-button" type="button" disabled title="GitHub sign-in is coming soon">
+          <button
+            className="tf-auth-social-button"
+            type="button"
+            onClick={handleGitHubLogin}
+            disabled={isSubmitting || isGoogleRedirecting || isGitHubRedirecting}
+            aria-busy={isGitHubRedirecting}
+          >
             <span className="tf-auth-github-mark" aria-hidden="true">GH</span>
-            GitHub
+            {isGitHubRedirecting ? "Connecting..." : "GitHub"}
           </button>
         </div>
       </div>

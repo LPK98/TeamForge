@@ -6,12 +6,34 @@ use App\Models\GitHubAccount;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class GitHubApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_github_login_redirect_uses_the_configured_oauth_credentials(): void
+    {
+        config()->set([
+            'services.github.client_id' => 'client-id',
+            'services.github.client_secret' => 'client-secret',
+            'services.github.login_callback_url' => 'http://127.0.0.1:8000/api/auth/github/callback',
+        ]);
+
+        $response = $this->get('/api/auth/github/redirect');
+
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+        $this->assertStringStartsWith('https://github.com/login/oauth/authorize?', $location);
+        $this->assertSame('client-id', $query['client_id']);
+        $this->assertSame('http://127.0.0.1:8000/api/auth/github/callback', $query['redirect_uri']);
+        $this->assertNotEmpty($query['state']);
+        $this->assertTrue(Cache::has('github.login.oauth.'.hash('sha256', $query['state'])));
+    }
 
     public function test_sync_persists_repository_metadata_and_import_reuses_it(): void
     {
