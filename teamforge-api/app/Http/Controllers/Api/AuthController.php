@@ -6,9 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -60,6 +64,63 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
         ]);
+    }
+
+    public function redirectToGoogle(): RedirectResponse
+    {
+        return Socialite::driver('google')
+            ->stateless()
+            ->redirect();
+    }
+
+    public function handleGoogleCallback(): RedirectResponse
+    {
+        $frontendUrl = config('services.google.frontend_redirect_url', 'http://localhost:5173/login');
+
+        try {
+            $googleUser = Socialite::driver('google')
+                ->stateless()
+                ->user();
+        } catch (\Throwable $exception) {
+            Log::warning('Google OAuth callback failed.', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return redirect()->away($this->googleFrontendUrl($frontendUrl, [
+                'oauth_error' => 'Google sign-in could not be completed. Please try again.',
+            ]));
+        }
+
+        $email = trim((string) $googleUser->getEmail());
+
+        if ($email === '') {
+            return redirect()->away($this->googleFrontendUrl($frontendUrl, [
+                'oauth_error' => 'Google did not provide an email address for this account.',
+            ]));
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            $user = User::create([
+                'name' => trim((string) ($googleUser->getName() ?: $googleUser->getNickname() ?: 'TeamForge user')),
+                'email' => $email,
+                'password' => Str::random(40),
+            ]);
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
+
+        $token = $user->createToken('teamforge-web')->plainTextToken;
+
+        return redirect()->away($this->googleFrontendUrl($frontendUrl, [
+            'oauth_token' => $token,
+        ]));
+    }
+
+    private function googleFrontendUrl(string $frontendUrl, array $parameters): string
+    {
+        return $frontendUrl.'?'.http_build_query($parameters);
     }
 
     public function me(Request $request): JsonResponse

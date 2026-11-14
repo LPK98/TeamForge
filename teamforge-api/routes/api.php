@@ -18,6 +18,11 @@ Route::post('/register', [AuthController::class, 'register'])
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:5,1');
 
+Route::get('/auth/google/redirect', [AuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::get('/auth/github/redirect', [GitHubController::class, 'redirectToLogin']);
+Route::get('/auth/github/callback', [GitHubController::class, 'handleLoginCallback']);
+
 Route::get('/health', HealthCheckController::class);
 
 Route::middleware('auth:sanctum')->group(function () {

@@ -9,24 +9,24 @@ use RuntimeException;
 
 class GitHubApiService
 {
-    public function authorizationUrl(string $state): string
+    public function authorizationUrl(string $state, ?string $callbackUrl = null): string
     {
         return 'https://github.com/login/oauth/authorize?'.http_build_query([
             'client_id' => config('services.github.client_id'),
-            'redirect_uri' => config('services.github.callback_url'),
+            'redirect_uri' => $callbackUrl ?? config('services.github.callback_url'),
             'scope' => config('services.github.scope', 'read:user user:email repo'),
             'state' => $state,
         ]);
     }
 
-    public function exchangeCode(string $code): string
+    public function exchangeCode(string $code, ?string $callbackUrl = null): string
     {
         try {
             $response = Http::asForm()->acceptJson()->post('https://github.com/login/oauth/access_token', [
             'client_id' => config('services.github.client_id'),
             'client_secret' => config('services.github.client_secret'),
             'code' => $code,
-            'redirect_uri' => config('services.github.callback_url'),
+            'redirect_uri' => $callbackUrl ?? config('services.github.callback_url'),
             ])->throw()->json();
         } catch (RequestException $exception) {
             throw $this->apiException($exception);
@@ -43,6 +43,25 @@ class GitHubApiService
     public function user(string $token): array
     {
         return $this->call(fn () => $this->request($token)->get('/user')->throw()->json());
+    }
+
+    public function primaryEmail(string $token): ?string
+    {
+        $emails = $this->call(fn () => $this->request($token)->get('/user/emails')->throw()->json());
+
+        foreach ($emails as $email) {
+            if (($email['primary'] ?? false) && ($email['verified'] ?? false) && ! empty($email['email'])) {
+                return (string) $email['email'];
+            }
+        }
+
+        foreach ($emails as $email) {
+            if (($email['verified'] ?? false) && ! empty($email['email'])) {
+                return (string) $email['email'];
+            }
+        }
+
+        return null;
     }
 
     /** @return array<int, array<string, mixed>> */
