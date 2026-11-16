@@ -23,7 +23,7 @@ For a physical Android device, use the development computer's reachable LAN addr
 flutter run --dart-define=API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8000/api
 ```
 
-The API URL defaults to the Android emulator host. Override it for production after confirming the deployed backend URL. The repository deployment configuration currently identifies `https://teamforge-prv0.onrender.com/api`; `teamforge-api/.env.example` contains a conflicting hostname.
+The API URL defaults to the Android emulator host. Override it for production after confirming the deployed backend URL. The repository deployment configuration currently identifies `https://teamforge-api-3jwt.onrender.com/api`.
 
 ## Current implementation
 

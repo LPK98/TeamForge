@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -68,14 +69,40 @@ class AuthController extends Controller
 
     public function redirectToGoogle(): RedirectResponse
     {
+        abort_unless(
+            config('services.google.client_id')
+                && config('services.google.client_secret')
+                && config('services.google.redirect'),
+            503,
+            'Google OAuth is not configured.'
+        );
+
+        $state = Str::random(64);
+        Cache::put($this->googleLoginStateKey($state), true, now()->addMinutes(10));
+
         return Socialite::driver('google')
             ->stateless()
+            ->with(['state' => $state])
             ->redirect();
     }
 
-    public function handleGoogleCallback(): RedirectResponse
+    public function handleGoogleCallback(Request $request): RedirectResponse
     {
-        $frontendUrl = config('services.google.frontend_redirect_url', 'http://localhost:5173/login');
+        $frontendUrl = (string) config('services.google.frontend_redirect_url', 'http://localhost:5173/login');
+
+        $state = $request->query('state');
+        $isValidState = is_string($state) && $state !== '' && Cache::pull($this->googleLoginStateKey($state));
+
+        if (! $isValidState) {
+            return $this->googleErrorRedirect($frontendUrl, 'Your Google sign-in session expired. Please try again.');
+        }
+
+        if ($request->query('error')) {
+            return $this->googleErrorRedirect(
+                $frontendUrl,
+                $this->queryString($request, 'error_description', 'Google sign-in was cancelled.')
+            );
+        }
 
         try {
             $googleUser = Socialite::driver('google')
@@ -87,40 +114,71 @@ class AuthController extends Controller
                 'message' => $exception->getMessage(),
             ]);
 
-            return redirect()->away($this->googleFrontendUrl($frontendUrl, [
-                'oauth_error' => 'Google sign-in could not be completed. Please try again.',
-            ]));
+            return $this->googleErrorRedirect($frontendUrl, 'Google sign-in could not be completed. Please try again.');
         }
 
-        $email = trim((string) $googleUser->getEmail());
+        $email = mb_strtolower(trim((string) $googleUser->getEmail()));
 
         if ($email === '') {
-            return redirect()->away($this->googleFrontendUrl($frontendUrl, [
-                'oauth_error' => 'Google did not provide an email address for this account.',
-            ]));
+            return $this->googleErrorRedirect($frontendUrl, 'Google did not provide an email address for this account.');
         }
 
-        $user = User::where('email', $email)->first();
+        $name = trim((string) ($googleUser->getName() ?: $googleUser->getNickname() ?: 'TeamForge user'));
 
-        if (! $user) {
-            $user = User::create([
-                'name' => trim((string) ($googleUser->getName() ?: $googleUser->getNickname() ?: 'TeamForge user')),
-                'email' => $email,
-                'password' => Str::random(40),
-            ]);
-            $user->forceFill(['email_verified_at' => now()])->save();
+        try {
+            $user = User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first();
+
+            if (! $user) {
+                $user = User::create([
+                    'name' => $name === '' ? 'TeamForge user' : Str::limit($name, 255, ''),
+                    'email' => $email,
+                    'password' => Str::random(40),
+                ]);
+            }
+
+            if ($user->email_verified_at === null) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return $this->googleErrorRedirect($frontendUrl, 'Google sign-in could not be completed. Please try again.');
         }
-
-        $token = $user->createToken('teamforge-web')->plainTextToken;
 
         return redirect()->away($this->googleFrontendUrl($frontendUrl, [
-            'oauth_token' => $token,
+            'oauth_token' => $user->createToken('teamforge-web')->plainTextToken,
+        ]));
+    }
+
+    private function googleLoginStateKey(string $state): string
+    {
+        return 'google.login.oauth.'.hash('sha256', $state);
+    }
+
+    /**
+     * Read a query string value, falling back when it is missing or not a string.
+     */
+    private function queryString(Request $request, string $key, string $default): string
+    {
+        $value = $request->query($key);
+
+        return is_string($value) && $value !== '' ? $value : $default;
+    }
+
+    private function googleErrorRedirect(string $frontendUrl, string $message): RedirectResponse
+    {
+        return redirect()->away($this->googleFrontendUrl($frontendUrl, [
+            'oauth_error' => $message,
         ]));
     }
 
     private function googleFrontendUrl(string $frontendUrl, array $parameters): string
     {
-        return $frontendUrl.'?'.http_build_query($parameters);
+        $separator = str_contains($frontendUrl, '?') ? '&' : '?';
+
+        return $frontendUrl.$separator.http_build_query($parameters);
     }
 
     public function me(Request $request): JsonResponse

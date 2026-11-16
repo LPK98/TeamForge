@@ -10,4 +10,4 @@ uses its Dockerfile and `/api/health` health check.
 Before deploying, set the `APP_KEY`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`,
 and `DB_PASSWORD` environment variables in Render. Set the frontend's
 `VITE_API_BASE_URL` to the deployed API origin, for example
-`https://teamforge-prv0.onrender.com`.
+`https://teamforge-api-3jwt.onrender.com`.
