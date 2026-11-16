@@ -8,9 +8,9 @@ import PasswordField from "./PasswordField";
 import { getAuthErrorMessage } from "./auth-errors";
 
 const GOOGLE_REDIRECT_URL =
-  import.meta.env.VITE_GOOGLE_REDIRECT_URL?.trim();
+  import.meta.env.VITE_GOOGLE_REDIRECT_URL?.trim() ?? "";
 const GITHUB_REDIRECT_URL =
-  import.meta.env.VITE_GITHUB_REDIRECT_URL?.trim();
+  import.meta.env.VITE_GITHUB_REDIRECT_URL?.trim() ?? "";
 
 function Login() {
   const { login } = useAuth();
@@ -56,12 +56,22 @@ function Login() {
   const handleGoogleLogin = () => {
     if (isSubmitting || isGoogleRedirecting || isGitHubRedirecting) return;
 
+    if (!GOOGLE_REDIRECT_URL) {
+      setError("Google sign-in is not configured.");
+      return;
+    }
+
     setIsGoogleRedirecting(true);
     window.location.assign(GOOGLE_REDIRECT_URL);
   };
 
   const handleGitHubLogin = () => {
     if (isSubmitting || isGoogleRedirecting || isGitHubRedirecting) return;
+
+    if (!GITHUB_REDIRECT_URL) {
+      setError("GitHub sign-in is not configured.");
+      return;
+    }
 
     setIsGitHubRedirecting(true);
     window.location.assign(GITHUB_REDIRECT_URL);
