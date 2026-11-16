@@ -8,6 +8,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -276,5 +279,164 @@ class AuthApiTest extends TestCase
 
         Storage::disk('public')->assertMissing($path);
         $this->assertDatabaseHas('users', ['id' => $user->id, 'avatar_path' => null]);
+    }
+
+    public function test_google_redirect_returns_503_when_oauth_is_not_configured(): void
+    {
+        config()->set('services.google.client_id', null);
+
+        $this->get('/api/auth/google/redirect')->assertStatus(503);
+    }
+
+    public function test_google_redirect_sends_the_user_to_google_with_the_configured_client_and_state(): void
+    {
+        $this->configureGoogleOAuth();
+
+        $response = $this->get('/api/auth/google/redirect')->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $query = $this->redirectQuery($response);
+
+        $this->assertStringStartsWith('https://accounts.google.com/o/oauth2/auth?', $location);
+        $this->assertNotSame('', $query['state'] ?? '');
+        $this->assertSame('test-google-client-id', $query['client_id']);
+        $this->assertSame('http://127.0.0.1:8000/api/auth/google/callback', $query['redirect_uri']);
+    }
+
+    public function test_google_callback_creates_a_verified_user_and_returns_a_working_token(): void
+    {
+        $this->configureGoogleOAuth();
+        $state = $this->startGoogleRedirect();
+
+        Socialite::fake('google', SocialiteUser::fake([
+            'id' => 'google-123',
+            'name' => 'Google Person',
+            'email' => 'google-person@example.test',
+        ]));
+
+        $response = $this->get("/api/auth/google/callback?state={$state}&code=test-code")->assertRedirect();
+        $query = $this->redirectQuery($response);
+
+        $this->assertStringStartsWith('http://localhost:5173/login?', (string) $response->headers->get('Location'));
+        $this->assertArrayHasKey('oauth_token', $query);
+
+        $user = User::where('email', 'google-person@example.test')->firstOrFail();
+
+        $this->assertNotNull($user->email_verified_at);
+
+        $this->withToken($query['oauth_token'])->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('user.id', $user->id);
+    }
+
+    public function test_google_callback_logs_into_an_existing_account_ignoring_email_case(): void
+    {
+        $this->configureGoogleOAuth();
+        $state = $this->startGoogleRedirect();
+        $user = User::factory()->create(['email' => 'CaseUser@Example.Test']);
+
+        Socialite::fake('google', SocialiteUser::fake([
+            'email' => 'caseuser@example.test',
+            'name' => 'Case User',
+        ]));
+
+        $response = $this->get("/api/auth/google/callback?state={$state}&code=test-code")->assertRedirect();
+        $query = $this->redirectQuery($response);
+
+        $this->assertDatabaseCount('users', 1);
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        $this->assertArrayHasKey('oauth_token', $query);
+
+        $this->withToken($query['oauth_token'])->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('user.id', $user->id);
+    }
+
+    public function test_google_callback_redirects_with_an_error_when_the_state_is_missing_or_unknown(): void
+    {
+        $this->configureGoogleOAuth();
+
+        $missingState = $this->get('/api/auth/google/callback?code=test-code')->assertRedirect();
+        $unknownState = $this->get('/api/auth/google/callback?state=unknown&code=test-code')->assertRedirect();
+
+        $this->assertSame(
+            'Your Google sign-in session expired. Please try again.',
+            $this->redirectQuery($missingState)['oauth_error'] ?? null
+        );
+        $this->assertSame(
+            'Your Google sign-in session expired. Please try again.',
+            $this->redirectQuery($unknownState)['oauth_error'] ?? null
+        );
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_google_callback_redirects_the_denial_message_when_google_denies_access(): void
+    {
+        $this->configureGoogleOAuth();
+        $state = $this->startGoogleRedirect();
+
+        $response = $this->get(
+            "/api/auth/google/callback?state={$state}&error=access_denied&error_description=The+user+denied+access"
+        )->assertRedirect();
+
+        $this->assertSame('The user denied access', $this->redirectQuery($response)['oauth_error'] ?? null);
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_google_callback_redirects_with_an_error_when_google_returns_no_email(): void
+    {
+        $this->configureGoogleOAuth();
+        $state = $this->startGoogleRedirect();
+
+        Socialite::fake('google', SocialiteUser::fake(['email' => '']));
+
+        $response = $this->get("/api/auth/google/callback?state={$state}&code=test-code")->assertRedirect();
+
+        $this->assertSame(
+            'Google did not provide an email address for this account.',
+            $this->redirectQuery($response)['oauth_error'] ?? null
+        );
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_google_callback_appends_the_error_to_a_frontend_url_that_already_has_a_query_string(): void
+    {
+        $this->configureGoogleOAuth();
+        config()->set('services.google.frontend_redirect_url', 'http://localhost:5173/login?next=%2Fprojects');
+
+        $response = $this->get('/api/auth/google/callback?code=test-code')->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+
+        $this->assertStringStartsWith('http://localhost:5173/login?next=%2Fprojects&oauth_error=', $location);
+        $this->assertSame(
+            'Your Google sign-in session expired. Please try again.',
+            $this->redirectQuery($response)['oauth_error'] ?? null
+        );
+    }
+
+    private function configureGoogleOAuth(): void
+    {
+        config()->set([
+            'services.google.client_id' => 'test-google-client-id',
+            'services.google.client_secret' => 'test-google-client-secret',
+            'services.google.redirect' => 'http://127.0.0.1:8000/api/auth/google/callback',
+            'services.google.frontend_redirect_url' => 'http://localhost:5173/login',
+        ]);
+    }
+
+    private function startGoogleRedirect(): string
+    {
+        $response = $this->get('/api/auth/google/redirect')->assertRedirect();
+
+        return (string) ($this->redirectQuery($response)['state'] ?? '');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function redirectQuery(TestResponse $response): array
+    {
+        parse_str((string) parse_url((string) $response->headers->get('Location'), PHP_URL_QUERY), $query);
+
+        return $query;
     }
 }
