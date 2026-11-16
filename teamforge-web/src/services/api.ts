@@ -1,7 +1,7 @@
 
 import axios from "axios";
 
-const DEFAULT_API_ORIGIN = "http://127.0.0.1:8000";
+const DEFAULT_API_ORIGIN = "https://teamforge-api-3jwt.onrender.com/api";
 const configuredApiOrigin = import.meta.env.VITE_API_BASE_URL?.trim();
 const API_BASE_URL = `${(configuredApiOrigin || DEFAULT_API_ORIGIN).replace(/\/+$/, "").replace(/\/api$/i, "")}/api`;
 const TOKEN_KEY = "teamforge_token";
