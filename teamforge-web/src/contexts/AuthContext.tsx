@@ -38,8 +38,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const oauthToken = params.get("oauth_token")?.trim();
 
       if (params.has("oauth_token")) {
-        const cleanUrl = `${window.location.pathname}${window.location.hash}`;
-        window.history.replaceState(window.history.state, document.title, cleanUrl);
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          `${window.location.pathname}${window.location.hash}`,
+        );
+        if (!oauthToken) {
+          clearToken();
+        }
       }
 
       if (oauthToken) {
