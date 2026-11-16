@@ -40,6 +40,7 @@ return [
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
         'callback_url' => env('GITHUB_CALLBACK_URL'),
         'login_callback_url' => env('GITHUB_LOGIN_CALLBACK_URL', 'http://127.0.0.1:8000/api/auth/github/callback'),
+        'login_scope' => env('GITHUB_LOGIN_SCOPE', 'read:user user:email'),
         'frontend_redirect_url' => env('GITHUB_FRONTEND_REDIRECT_URL'),
         'login_frontend_redirect_url' => env('GITHUB_LOGIN_FRONTEND_REDIRECT_URL', 'http://localhost:5173/login'),
         'api_url' => env('GITHUB_API_URL', 'https://api.github.com'),

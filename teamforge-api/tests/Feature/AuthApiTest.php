@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Laravel\Socialite\Facades\Socialite;
@@ -300,6 +301,92 @@ class AuthApiTest extends TestCase
         $this->assertNotSame('', $query['state'] ?? '');
         $this->assertSame('test-google-client-id', $query['client_id']);
         $this->assertSame('http://127.0.0.1:8000/api/auth/google/callback', $query['redirect_uri']);
+    }
+
+    public function test_github_login_uses_minimal_scope_and_returns_a_working_token(): void
+    {
+        config()->set([
+            'services.github.client_id' => 'test-github-client-id',
+            'services.github.client_secret' => 'test-github-client-secret',
+            'services.github.login_callback_url' => 'http://127.0.0.1:8000/api/auth/github/callback',
+            'services.github.login_frontend_redirect_url' => 'http://localhost:5173/login',
+        ]);
+        Http::fake([
+            'https://github.com/login/oauth/access_token' => Http::response(['access_token' => 'github-token'], 200),
+            'https://api.github.com/user' => Http::response([
+                'id' => 12345,
+                'login' => 'github-person',
+                'name' => 'GitHub Person',
+                'avatar_url' => 'https://avatars.githubusercontent.com/u/12345',
+            ], 200),
+            'https://api.github.com/user/emails' => Http::response([
+                ['email' => 'github-person@example.test', 'primary' => true, 'verified' => true],
+            ], 200),
+        ]);
+
+        $redirect = $this->get('/api/auth/github/redirect')->assertRedirect();
+        $redirectQuery = $this->redirectQuery($redirect);
+
+        $this->assertSame('read:user user:email', $redirectQuery['scope']);
+        $this->assertSame('http://127.0.0.1:8000/api/auth/github/callback', $redirectQuery['redirect_uri']);
+
+        $callback = $this->get('/api/auth/github/callback?state='.$redirectQuery['state'].'&code=test-code')->assertRedirect();
+        $query = $this->redirectQuery($callback);
+        $user = User::where('email', 'github-person@example.test')->firstOrFail();
+
+        $this->assertArrayHasKey('oauth_token', $query);
+        $this->assertDatabaseHas('github_accounts', [
+            'user_id' => $user->id,
+            'github_user_id' => '12345',
+            'login' => 'github-person',
+        ]);
+        $this->withToken($query['oauth_token'])->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('user.id', $user->id);
+    }
+
+    public function test_github_login_matches_existing_email_case_insensitively_and_preserves_frontend_query(): void
+    {
+        config()->set([
+            'services.github.client_id' => 'test-github-client-id',
+            'services.github.client_secret' => 'test-github-client-secret',
+            'services.github.login_callback_url' => 'http://127.0.0.1:8000/api/auth/github/callback',
+            'services.github.login_frontend_redirect_url' => 'http://localhost:5173/login?next=%2Fprojects',
+        ]);
+        $user = User::factory()->create(['email' => 'Existing@Example.Test']);
+        Http::fake([
+            'https://github.com/login/oauth/access_token' => Http::response(['access_token' => 'github-token'], 200),
+            'https://api.github.com/user' => Http::response(['id' => 67890, 'login' => 'existing-person'], 200),
+            'https://api.github.com/user/emails' => Http::response([
+                ['email' => 'existing@example.test', 'primary' => true, 'verified' => true],
+            ], 200),
+        ]);
+
+        $redirect = $this->get('/api/auth/github/redirect')->assertRedirect();
+        $callback = $this->get('/api/auth/github/callback?state='.$this->redirectQuery($redirect)['state'].'&code=test-code')->assertRedirect();
+        $query = $this->redirectQuery($callback);
+
+        $this->assertStringStartsWith('http://localhost:5173/login?next=%2Fprojects&oauth_token=', (string) $callback->headers->get('Location'));
+        $this->assertSame(1, User::count());
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        $this->assertArrayHasKey('oauth_token', $query);
+    }
+
+    public function test_github_callback_rejects_missing_code_and_expired_state(): void
+    {
+        config()->set([
+            'services.github.client_id' => 'test-github-client-id',
+            'services.github.client_secret' => 'test-github-client-secret',
+            'services.github.login_callback_url' => 'http://127.0.0.1:8000/api/auth/github/callback',
+            'services.github.login_frontend_redirect_url' => 'http://localhost:5173/login',
+        ]);
+
+        $missingState = $this->get('/api/auth/github/callback?code=test-code')->assertRedirect();
+        $this->assertSame('Your GitHub sign-in session expired. Please try again.', $this->redirectQuery($missingState)['oauth_error']);
+
+        $state = (string) $this->redirectQuery($this->get('/api/auth/github/redirect'))['state'];
+        $missingCode = $this->get('/api/auth/github/callback?state='.$state)->assertRedirect();
+        $this->assertSame('GitHub did not return an authorization code. Please try again.', $this->redirectQuery($missingCode)['oauth_error']);
     }
 
     public function test_google_callback_creates_a_verified_user_and_returns_a_working_token(): void
