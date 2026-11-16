@@ -3,7 +3,8 @@ import axios from "axios";
 
 const DEFAULT_API_ORIGIN = "https://teamforge-api-3jwt.onrender.com/api";
 const configuredApiOrigin = import.meta.env.VITE_API_BASE_URL?.trim();
-const API_BASE_URL = `${(configuredApiOrigin || DEFAULT_API_ORIGIN).replace(/\/+$/, "").replace(/\/api$/i, "")}/api`;
+export const API_ORIGIN = (configuredApiOrigin || DEFAULT_API_ORIGIN).replace(/\/+$/, "").replace(/\/api$/i, "");
+const API_BASE_URL = `${API_ORIGIN}/api`;
 const TOKEN_KEY = "teamforge_token";
 
 export interface User {
