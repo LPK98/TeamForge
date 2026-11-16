@@ -7,8 +7,10 @@ import AuthLayout from "./AuthLayout";
 import PasswordField from "./PasswordField";
 import { getAuthErrorMessage } from "./auth-errors";
 
-const GOOGLE_REDIRECT_URL = "http://127.0.0.1:8000/api/auth/google/redirect";
-const GITHUB_REDIRECT_URL = "http://127.0.0.1:8000/api/auth/github/redirect";
+const GOOGLE_REDIRECT_URL =
+  import.meta.env.VITE_GOOGLE_REDIRECT_URL?.trim();
+const GITHUB_REDIRECT_URL =
+  import.meta.env.VITE_GITHUB_REDIRECT_URL?.trim();
 
 function Login() {
   const { login } = useAuth();
