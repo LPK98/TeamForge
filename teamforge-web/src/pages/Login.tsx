@@ -1,19 +1,17 @@
 import { AlertCircle, LoaderCircle } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/auth-context";
-import { setToken } from "../services/api";
+import { API_ORIGIN } from "../services/api";
 import AuthLayout from "./AuthLayout";
 import PasswordField from "./PasswordField";
 import { getAuthErrorMessage } from "./auth-errors";
 
-const GOOGLE_REDIRECT_URL =
-  import.meta.env.VITE_GOOGLE_REDIRECT_URL?.trim();
-const GITHUB_REDIRECT_URL =
-  import.meta.env.VITE_GITHUB_REDIRECT_URL?.trim();
+const GOOGLE_REDIRECT_URL = `${API_ORIGIN}/api/auth/google/redirect`;
+const GITHUB_REDIRECT_URL = `${API_ORIGIN}/api/auth/github/redirect`;
 
 function Login() {
-  const { login } = useAuth();
+  const { error: authError, login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,16 +19,6 @@ function Login() {
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
   const [isGitHubRedirecting, setIsGitHubRedirecting] = useState(false);
   const [error, setError] = useState(() => new URLSearchParams(window.location.search).get("oauth_error") ?? "");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthToken = params.get("oauth_token");
-
-    if (oauthToken) {
-      setToken(oauthToken);
-      window.location.replace("/");
-    }
-  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -80,9 +68,9 @@ function Login() {
       </header>
 
       <form className="tf-auth-form" onSubmit={handleSubmit} noValidate>
-        {error && (
+        {(error || authError) && (
           <div className="tf-auth-alert" role="alert">
-            <AlertCircle size={16} /> <span>{error}</span>
+            <AlertCircle size={16} /> <span>{error || authError}</span>
           </div>
         )}
 

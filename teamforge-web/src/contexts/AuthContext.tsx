@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -24,11 +25,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sessionRestoreStarted = useRef(false);
 
   useEffect(() => {
+    if (sessionRestoreStarted.current) return;
+    sessionRestoreStarted.current = true;
+
     let isMounted = true;
 
     const restoreSession = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get("oauth_token")?.trim();
+
+      if (params.has("oauth_token")) {
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          `${window.location.pathname}${window.location.hash}`,
+        );
+        if (!oauthToken) {
+          clearToken();
+        }
+      }
+
+      if (oauthToken) {
+        setToken(oauthToken);
+      }
+
       if (!getToken()) {
         if (isMounted) {
           setIsLoading(false);
@@ -48,7 +71,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (isMounted) {
           setUser(null);
-          setError("Your session has expired. Please sign in again.");
+          setError(oauthToken
+            ? "GitHub sign-in could not be verified. Please try again."
+            : "Your session has expired. Please sign in again.");
         }
       } finally {
         if (isMounted) {

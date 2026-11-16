@@ -9,12 +9,12 @@ use RuntimeException;
 
 class GitHubApiService
 {
-    public function authorizationUrl(string $state, ?string $callbackUrl = null): string
+    public function authorizationUrl(string $state, ?string $callbackUrl = null, ?string $scope = null): string
     {
         return 'https://github.com/login/oauth/authorize?'.http_build_query([
             'client_id' => config('services.github.client_id'),
             'redirect_uri' => $callbackUrl ?? config('services.github.callback_url'),
-            'scope' => config('services.github.scope', 'read:user user:email repo'),
+            'scope' => $scope ?? config('services.github.scope', 'read:user user:email repo'),
             'state' => $state,
         ]);
     }
@@ -22,7 +22,7 @@ class GitHubApiService
     public function exchangeCode(string $code, ?string $callbackUrl = null): string
     {
         try {
-            $response = Http::asForm()->acceptJson()->post('https://github.com/login/oauth/access_token', [
+            $response = Http::timeout(15)->asForm()->acceptJson()->post('https://github.com/login/oauth/access_token', [
             'client_id' => config('services.github.client_id'),
             'client_secret' => config('services.github.client_secret'),
             'code' => $code,
@@ -92,7 +92,8 @@ class GitHubApiService
 
     private function request(string $token): PendingRequest
     {
-        return Http::baseUrl(config('services.github.api_url', 'https://api.github.com'))
+        return Http::timeout(15)
+            ->baseUrl(config('services.github.api_url', 'https://api.github.com'))
             ->withToken($token)
             ->acceptJson()
             ->withHeaders(['X-GitHub-Api-Version' => '2022-11-28']);

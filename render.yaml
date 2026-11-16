@@ -4,6 +4,7 @@ services:
     runtime: docker
     rootDir: teamforge-api
     dockerfilePath: ./Dockerfile
+    preDeployCommand: php artisan migrate --force
     healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
@@ -16,6 +17,14 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         value: https://teamforge-rho-six.vercel.app
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_LOGIN_CALLBACK_URL
+        value: https://teamforge-api-3jwt.onrender.com/api/auth/github/callback
+      - key: GITHUB_LOGIN_FRONTEND_REDIRECT_URL
+        value: https://teamforge-rho-six.vercel.app/login
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST

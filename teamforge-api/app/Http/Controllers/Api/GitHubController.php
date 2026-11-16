@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -24,23 +25,40 @@ class GitHubController extends Controller
         $state = Str::random(64);
         Cache::put($this->loginStateKey($state), true, now()->addMinutes(10));
 
-        return redirect()->away($github->authorizationUrl($state, config('services.github.login_callback_url')));
+        return redirect()->away($github->authorizationUrl(
+            $state,
+            config('services.github.login_callback_url'),
+            config('services.github.login_scope', 'read:user user:email'),
+        ));
     }
 
     public function handleLoginCallback(Request $request, GitHubApiService $github): RedirectResponse
     {
         $frontendUrl = config('services.github.login_frontend_redirect_url', 'http://localhost:5173/login');
-        $state = (string) $request->query('state');
+        $state = $this->queryString($request, 'state');
         $isValidState = $state !== '' && Cache::pull($this->loginStateKey($state));
 
-        if (! $isValidState || $request->query('error')) {
+        if (! $isValidState) {
             return redirect()->away($this->githubLoginUrl($frontendUrl, [
-                'oauth_error' => $request->query('error_description', 'Invalid or expired GitHub OAuth state.'),
+                'oauth_error' => 'Your GitHub sign-in session expired. Please try again.',
+            ]));
+        }
+
+        if ($request->query('error')) {
+            return redirect()->away($this->githubLoginUrl($frontendUrl, [
+                'oauth_error' => $this->queryString($request, 'error_description', 'GitHub sign-in was cancelled.'),
+            ]));
+        }
+
+        $code = $this->queryString($request, 'code');
+        if ($code === '') {
+            return redirect()->away($this->githubLoginUrl($frontendUrl, [
+                'oauth_error' => 'GitHub did not return an authorization code. Please try again.',
             ]));
         }
 
         try {
-            $token = $github->exchangeCode((string) $request->query('code'), config('services.github.login_callback_url'));
+            $token = $github->exchangeCode($code, config('services.github.login_callback_url'));
             $profile = $github->user($token);
             $email = $github->primaryEmail($token);
 
@@ -50,33 +68,48 @@ class GitHubController extends Controller
                 ]));
             }
 
-            $githubAccount = GitHubAccount::where('github_user_id', (string) $profile['id'])->first();
-            $user = $githubAccount?->user ?? User::where('email', $email)->first();
-
-            if (! $user) {
-                $user = User::create([
-                    'name' => trim((string) ($profile['name'] ?? $profile['login'] ?? 'TeamForge user')),
-                    'email' => $email,
-                    'password' => Str::random(40),
-                ]);
-                $user->forceFill(['email_verified_at' => now()])->save();
+            $githubUserId = trim((string) ($profile['id'] ?? ''));
+            $githubLogin = trim((string) ($profile['login'] ?? ''));
+            if ($githubUserId === '' || $githubLogin === '') {
+                throw new \RuntimeException('GitHub returned an incomplete user profile.');
             }
 
-            $account = $githubAccount ?? $user->githubAccount;
-            $accountData = [
-                'user_id' => $user->id,
-                'github_user_id' => (string) $profile['id'],
-                'login' => (string) $profile['login'],
-                'name' => $profile['name'] ?? null,
-                'avatar_url' => $profile['avatar_url'] ?? null,
-                'token' => $token,
-            ];
+            $user = DB::transaction(function () use ($email, $githubUserId, $githubLogin, $profile, $token): User {
+                $githubAccount = GitHubAccount::where('github_user_id', $githubUserId)->first();
+                $user = $githubAccount?->user ?? User::query()
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
+                    ->first();
 
-            if ($account) {
-                $account->update($accountData);
-            } else {
-                GitHubAccount::create($accountData);
-            }
+                if (! $user) {
+                    $user = User::create([
+                        'name' => Str::limit(trim((string) ($profile['name'] ?? $githubLogin)) ?: 'TeamForge user', 255, ''),
+                        'email' => mb_strtolower($email),
+                        'password' => Str::random(40),
+                    ]);
+                }
+
+                if ($user->email_verified_at === null) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
+
+                $account = $githubAccount ?? $user->githubAccount;
+                $accountData = [
+                    'user_id' => $user->id,
+                    'github_user_id' => $githubUserId,
+                    'login' => $githubLogin,
+                    'name' => $profile['name'] ?? null,
+                    'avatar_url' => $profile['avatar_url'] ?? null,
+                    'token' => $token,
+                ];
+
+                if ($account) {
+                    $account->update($accountData);
+                } else {
+                    GitHubAccount::create($accountData);
+                }
+
+                return $user;
+            });
 
             return redirect()->away($this->githubLoginUrl($frontendUrl, [
                 'oauth_token' => $user->createToken('teamforge-web')->plainTextToken,
@@ -340,7 +373,16 @@ class GitHubController extends Controller
     /** @param array<string, string> $parameters */
     private function githubLoginUrl(string $frontendUrl, array $parameters): string
     {
-        return $frontendUrl.'?'.http_build_query($parameters);
+        $separator = str_contains($frontendUrl, '?') ? '&' : '?';
+
+        return $frontendUrl.$separator.http_build_query($parameters);
+    }
+
+    private function queryString(Request $request, string $key, string $default = ''): string
+    {
+        $value = $request->query($key);
+
+        return is_string($value) && $value !== '' ? $value : $default;
     }
 
     private function oauthResult(bool $success, ?string $error = null): JsonResponse|RedirectResponse
