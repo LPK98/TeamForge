@@ -112,7 +112,7 @@ class GitHubController extends Controller
         $state = Str::random(64);
         Cache::put($this->stateKey($state), $request->user()->id, now()->addMinutes(10));
 
-        return response()->json(['url' => $github->authorizationUrl($state)]);
+        return response()->json(['url' => $github->authorizationUrl($state, config('services.github.callback_url'))]);
     }
 
     public function callback(Request $request, GitHubApiService $github): JsonResponse|RedirectResponse
@@ -124,7 +124,7 @@ class GitHubController extends Controller
         }
 
         try {
-            $token = $github->exchangeCode((string) $request->query('code'));
+            $token = $github->exchangeCode((string) $request->query('code'), config('services.github.callback_url'));
             $profile = $github->user($token);
             GitHubAccount::updateOrCreate(
                 ['user_id' => $userId],
@@ -347,7 +347,9 @@ class GitHubController extends Controller
     {
         $url = config('services.github.frontend_redirect_url');
         if ($url) {
-            return redirect()->away($url.'?'.http_build_query($success ? ['github' => 'connected'] : ['github' => 'error', 'message' => $error]));
+            $separator = str_contains($url, '?') ? '&' : '?';
+
+            return redirect()->away($url.$separator.http_build_query($success ? ['github' => 'connected'] : ['github' => 'error', 'message' => $error]));
         }
 
         return response()->json($success ? ['message' => 'GitHub account connected.'] : ['message' => $error], $success ? 200 : 400);
