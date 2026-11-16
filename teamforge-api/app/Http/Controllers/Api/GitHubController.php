@@ -4,15 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\GitHubAccount;
-use App\Models\Project;
 use App\Models\GitHubRepository;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\GitHubApiService;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Contracts\Encryption\EncryptException;
+use Illuminate\Database\QueryException;
+use Illuminate\Encryption\MissingAppKeyException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 class GitHubController extends Controller
@@ -31,62 +38,95 @@ class GitHubController extends Controller
     {
         $frontendUrl = config('services.github.login_frontend_redirect_url', 'http://localhost:5173/login');
         $state = (string) $request->query('state');
-        $isValidState = $state !== '' && Cache::pull($this->loginStateKey($state));
 
-        if (! $isValidState || $request->query('error')) {
+        if ($request->query('error')) {
             return redirect()->away($this->githubLoginUrl($frontendUrl, [
-                'oauth_error' => $request->query('error_description', 'Invalid or expired GitHub OAuth state.'),
+                'oauth_error' => (string) $request->query('error_description', 'GitHub sign-in was cancelled.'),
             ]));
         }
 
-        try {
-            $token = $github->exchangeCode((string) $request->query('code'), config('services.github.login_callback_url'));
-            $profile = $github->user($token);
-            $email = $github->primaryEmail($token);
+        if ($state === '' || ! Cache::pull($this->loginStateKey($state))) {
+            return redirect()->away($this->githubLoginUrl($frontendUrl, [
+                'oauth_error' => 'Your GitHub sign-in session expired. Please try again.',
+            ]));
+        }
 
-            if (! $email) {
+        $code = (string) $request->query('code');
+
+        if ($code === '') {
+            return redirect()->away($this->githubLoginUrl($frontendUrl, [
+                'oauth_error' => 'GitHub did not return an authorization code. Please try again.',
+            ]));
+        }
+
+        $step = 'exchange_code';
+
+        try {
+            $token = $github->exchangeCode($code, config('services.github.login_callback_url'));
+
+            $step = 'fetch_profile';
+            $profile = $github->user($token);
+            $githubUserId = trim((string) ($profile['id'] ?? ''));
+            $githubLogin = trim((string) ($profile['login'] ?? ''));
+
+            if ($githubUserId === '' || $githubLogin === '') {
+                throw new RuntimeException('GitHub returned an incomplete user profile.');
+            }
+
+            $step = 'fetch_email';
+            // GitHub Apps only expose /user/emails when the "Email addresses"
+            // permission is granted, so fall back to the profile email.
+            $email = mb_strtolower($github->primaryEmail($token) ?: trim((string) ($profile['email'] ?? '')));
+
+            if ($email === '') {
                 return redirect()->away($this->githubLoginUrl($frontendUrl, [
-                    'oauth_error' => 'GitHub did not provide a verified email address for this account.',
+                    'oauth_error' => 'GitHub did not share an email address. Make an email public on your GitHub account or ask the administrator to enable the "Email addresses" permission on the GitHub App.',
                 ]));
             }
 
-            $githubAccount = GitHubAccount::where('github_user_id', (string) $profile['id'])->first();
-            $user = $githubAccount?->user ?? User::where('email', $email)->first();
+            $step = 'persist_account';
 
-            if (! $user) {
-                $user = User::create([
-                    'name' => trim((string) ($profile['name'] ?? $profile['login'] ?? 'TeamForge user')),
-                    'email' => $email,
-                    'password' => Str::random(40),
-                ]);
-                $user->forceFill(['email_verified_at' => now()])->save();
-            }
+            $user = DB::transaction(function () use ($profile, $email, $githubUserId, $githubLogin, $token): User {
+                $githubAccount = GitHubAccount::where('github_user_id', $githubUserId)->first();
+                $user = $githubAccount?->user ?? User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-            $account = $githubAccount ?? $user->githubAccount;
-            $accountData = [
-                'user_id' => $user->id,
-                'github_user_id' => (string) $profile['id'],
-                'login' => (string) $profile['login'],
-                'name' => $profile['name'] ?? null,
-                'avatar_url' => $profile['avatar_url'] ?? null,
-                'token' => $token,
-            ];
+                if (! $user) {
+                    $user = User::create([
+                        'name' => Str::limit(trim((string) ($profile['name'] ?? '')) ?: $githubLogin, 255, ''),
+                        'email' => $email,
+                        'password' => Str::random(40),
+                    ]);
+                }
 
-            if ($account) {
-                $account->update($accountData);
-            } else {
-                GitHubAccount::create($accountData);
-            }
+                if ($user->email_verified_at === null) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
+
+                $githubAccount ??= $user->githubAccount;
+
+                $accountData = [
+                    'user_id' => $user->id,
+                    'github_user_id' => $githubUserId,
+                    'login' => $githubLogin,
+                    'name' => $profile['name'] ?? null,
+                    'avatar_url' => $profile['avatar_url'] ?? null,
+                    'token' => $token,
+                ];
+
+                if ($githubAccount) {
+                    $githubAccount->update($accountData);
+                } else {
+                    GitHubAccount::create($accountData);
+                }
+
+                return $user;
+            });
 
             return redirect()->away($this->githubLoginUrl($frontendUrl, [
                 'oauth_token' => $user->createToken('teamforge-web')->plainTextToken,
             ]));
         } catch (Throwable $exception) {
-            report($exception);
-
-            return redirect()->away($this->githubLoginUrl($frontendUrl, [
-                'oauth_error' => 'Unable to sign in with GitHub.',
-            ]));
+            return $this->githubLoginFailed($frontendUrl, $step, $exception);
         }
     }
 
@@ -340,7 +380,33 @@ class GitHubController extends Controller
     /** @param array<string, string> $parameters */
     private function githubLoginUrl(string $frontendUrl, array $parameters): string
     {
-        return $frontendUrl.'?'.http_build_query($parameters);
+        $separator = str_contains($frontendUrl, '?') ? '&' : '?';
+
+        return $frontendUrl.$separator.http_build_query($parameters);
+    }
+
+    private function githubLoginFailed(string $frontendUrl, string $step, Throwable $exception): RedirectResponse
+    {
+        report($exception);
+
+        Log::error('GitHub sign-in failed.', [
+            'step' => $step,
+            'exception' => $exception::class,
+            'message' => $exception->getMessage(),
+        ]);
+
+        $message = match (true) {
+            $exception instanceof MissingAppKeyException,
+            $exception instanceof EncryptException,
+            $exception instanceof DecryptException => 'GitHub sign-in is unavailable because the server encryption key (APP_KEY) is missing or invalid.',
+            $exception instanceof QueryException => 'GitHub sign-in is unavailable because the database is not ready. The latest migrations may not have run.',
+            str_contains($exception->getMessage(), 'incorrect_client_credentials') => 'GitHub sign-in is not configured correctly on the server (invalid client credentials).',
+            $step === 'exchange_code' => 'GitHub could not complete the sign-in. The authorization code may have expired; please try again.',
+            $step === 'fetch_profile' => 'GitHub did not return a usable profile. Please try again.',
+            default => 'Unable to sign in with GitHub. Please try again.',
+        };
+
+        return redirect()->away($this->githubLoginUrl($frontendUrl, ['oauth_error' => $message]));
     }
 
     private function oauthResult(bool $success, ?string $error = null): JsonResponse|RedirectResponse
