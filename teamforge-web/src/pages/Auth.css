@@ -324,18 +324,13 @@
   cursor: wait;
   opacity: 0.58;
 }
-.tf-auth-google-mark {
-  display: grid;
-  place-items: center;
+.tf-auth-social-icon {
+  display: block;
   width: 18px;
   height: 18px;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  color: #a5b4fc;
-  font-size: 0.72rem;
-  font-weight: 700;
+  flex: 0 0 18px;
 }
-.tf-auth-github-mark { color: #d7ddf0; font-size: 0.68rem; font-weight: 700; letter-spacing: -0.06em; }
+.tf-auth-github-icon { fill: #d7ddf0; }
 
 .tf-auth-switch { margin: 0; color: var(--tf-muted); font-size: 0.9rem; text-align: center; }
 .tf-auth-switch a, .tf-auth-brand:focus-visible { color: #a5b4fc; font-weight: 600; text-decoration: none; }

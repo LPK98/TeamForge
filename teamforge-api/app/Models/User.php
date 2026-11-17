@@ -85,6 +85,6 @@ class User extends Authenticatable
 
     public function githubAccount(): HasOne
     {
-        return $this->hasOne(GitHubAccount::class);
+        return $this->hasOne(GitHubAccount::class);  //Database relation
     }
 }
