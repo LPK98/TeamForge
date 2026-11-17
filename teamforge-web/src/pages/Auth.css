@@ -353,7 +353,12 @@
   .tf-auth-form-panel { padding: 28px; }
 }
 @media (max-width: 520px) {
-  .tf-auth-page { align-items: start; padding: 12px; }
+  .tf-auth-page {
+    align-items: center;
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
   .tf-auth-shell { border-radius: 22px; }
   .tf-auth-intro { padding: 22px 20px 0; }
   .tf-auth-form-panel { gap: 18px; padding: 20px; }
